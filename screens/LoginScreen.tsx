@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, } from "react-native";
 import Checkbox from "expo-checkbox";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LoginScreen: React.FC = () => {
@@ -12,11 +12,16 @@ const LoginScreen: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [secure, setSecure] = useState(true);
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const [farmLocation, setFarmLocation] = useState(""); //NEW: farm location input
 
-  const navigation = useNavigation(); // ✅ no typing needed
+  const navigation = useNavigation();
+  const route = useRoute();
 
-  // 👉 Adjust this to your backend server
-  const API_URL = "http://192.168.137.1:5000/api"; // use 10.0.2.2 for Android emulator, or http://localhost:5000 for iOS simulator
+  // Get accountType from navigation params (passed from your account choice screen)
+  const accountType = (route.params as { accountType?: "student" | "farmer" })
+    ?.accountType || "student";
+
+  const API_URL = "http://192.168.137.1:5000/api";
 
   const handleLogin = async () => {
     try {
@@ -33,11 +38,8 @@ const LoginScreen: React.FC = () => {
         return;
       }
 
-      // Save token
       await AsyncStorage.setItem("token", data.token);
-
-      // 🚀 Navigate to Home
-      navigation.navigate("Home" as never);
+      navigation.navigate("HomeScreen" as never);
     } catch (error) {
       console.error("Login error:", error);
       Alert.alert("Error", "Something went wrong, try again.");
@@ -47,6 +49,11 @@ const LoginScreen: React.FC = () => {
   const handleRegister = async () => {
     if (password !== confirmPassword) {
       Alert.alert("Error", "Passwords do not match!");
+      return;
+    }
+
+    if (accountType === "farmer" && !farmLocation.trim()) {
+      Alert.alert("Error", "Please enter your farm location.");
       return;
     }
 
@@ -60,7 +67,8 @@ const LoginScreen: React.FC = () => {
           email,
           password,
           contact_number: "0000000000",
-          user_type_id: 1,
+          user_type_id: accountType === "farmer" ? 2 : 1, // auto-assign farmer
+          farm_location: accountType === "farmer" ? farmLocation : null, // send farm location if farmer
         }),
       });
 
@@ -88,7 +96,12 @@ const LoginScreen: React.FC = () => {
             style={[styles.tab, activeTab === "login" && styles.activeTab]}
             onPress={() => setActiveTab("login")}
           >
-            <Text style={[styles.tabText, activeTab === "login" && styles.activeTabText]}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "login" && styles.activeTabText,
+              ]}
+            >
               Login
             </Text>
           </TouchableOpacity>
@@ -96,19 +109,28 @@ const LoginScreen: React.FC = () => {
             style={[styles.tab, activeTab === "register" && styles.activeTab]}
             onPress={() => setActiveTab("register")}
           >
-            <Text style={[styles.tabText, activeTab === "register" && styles.activeTabText]}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "register" && styles.activeTabText,
+              ]}
+            >
               Register
             </Text>
           </TouchableOpacity>
         </View>
         <View style={styles.tabUnderline}>
-          <View style={[styles.indicator, activeTab === "register" && { left: "50%" }]} />
+          <View
+            style={[styles.indicator, activeTab === "register" && { left: "50%" }]}
+          />
         </View>
 
         {/* LOGIN FORM */}
         {activeTab === "login" && (
           <>
-            <Text style={styles.title}>Sign In</Text>
+            <Text style={styles.title}>
+              Sign In ({accountType === "farmer" ? "Farmer" : "Student"})
+            </Text>
 
             <TextInput
               style={styles.input}
@@ -126,8 +148,15 @@ const LoginScreen: React.FC = () => {
                 onChangeText={setPassword}
                 secureTextEntry={secure}
               />
-              <TouchableOpacity onPress={() => setSecure(!secure)} style={styles.eyeButton}>
-                <Ionicons name={secure ? "eye-off-outline" : "eye-outline"} size={22} color="#444" />
+              <TouchableOpacity
+                onPress={() => setSecure(!secure)}
+                style={styles.eyeButton}
+              >
+                <Ionicons
+                  name={secure ? "eye-off-outline" : "eye-outline"}
+                  size={22}
+                  color="#444"
+                />
               </TouchableOpacity>
             </View>
 
@@ -140,12 +169,14 @@ const LoginScreen: React.FC = () => {
                 <Checkbox
                   value={rememberMe}
                   onValueChange={setRememberMe}
-                  color={rememberMe ? "#018241" : undefined}
+                  color={rememberMe ? "#1FA498" : undefined}
                   style={styles.checkbox}
                 />
                 <Text style={styles.checkboxLabel}>Remember Me</Text>
               </View>
-              <TouchableOpacity onPress={() => Alert.alert("Forgot password pressed")}>
+              <TouchableOpacity
+                onPress={() => Alert.alert("Forgot password pressed")}
+              >
                 <Text style={styles.link}>Forgot password?</Text>
               </TouchableOpacity>
             </View>
@@ -155,7 +186,9 @@ const LoginScreen: React.FC = () => {
         {/* REGISTER FORM */}
         {activeTab === "register" && (
           <>
-            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.title}>
+              Create Account ({accountType === "farmer" ? "Farmer" : "Student"})
+            </Text>
 
             <TextInput
               style={styles.input}
@@ -174,8 +207,15 @@ const LoginScreen: React.FC = () => {
                 onChangeText={setPassword}
                 secureTextEntry={secure}
               />
-              <TouchableOpacity onPress={() => setSecure(!secure)} style={styles.eyeButton}>
-                <Ionicons name={secure ? "eye-off-outline" : "eye-outline"} size={22} color="#444" />
+              <TouchableOpacity
+                onPress={() => setSecure(!secure)}
+                style={styles.eyeButton}
+              >
+                <Ionicons
+                  name={secure ? "eye-off-outline" : "eye-outline"}
+                  size={22}
+                  color="#444"
+                />
               </TouchableOpacity>
             </View>
 
@@ -187,7 +227,20 @@ const LoginScreen: React.FC = () => {
               secureTextEntry
             />
 
-            <TouchableOpacity style={styles.primaryButton} onPress={handleRegister}>
+            {/* Show Farm Location field only for Farmer */}
+            {accountType === "farmer" && (
+              <TextInput
+                style={styles.input}
+                placeholder="Farm Location"
+                value={farmLocation}
+                onChangeText={setFarmLocation}
+              />
+            )}
+
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={handleRegister}
+            >
               <Text style={styles.buttonText}>Register</Text>
             </TouchableOpacity>
           </>
@@ -198,6 +251,8 @@ const LoginScreen: React.FC = () => {
 };
 
 export default LoginScreen;
+
+// (styles unchanged — keep your original)
 
 const styles = StyleSheet.create({
   page: {
@@ -313,5 +368,6 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     fontSize: 16,
+    
   },
 });

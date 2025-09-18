@@ -1,6 +1,5 @@
 import React from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity, } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import BottomNav from "./layout/BottomNav";
 import { useNavigation } from "@react-navigation/native";
 
@@ -8,15 +7,15 @@ const pests = [
   { name: "Mealybugs", img: require("../assets/pests/mealybugs.jpg") },
   { name: "Cacao Pod Borer", img: require("../assets/pests/cacao-pod-borer.jpeg") },
   { name: "Cacao Mirid", img: require("../assets/pests/cacao-mirids.jpg") },
-  { name: "Cacao Weevil", img: require("../assets/pests/cacao-weevil.jpg") },
+  { name: "Cacao Weevil", img: require("../assets//pests/cacao-weevil.jpg") },
 ];
 
 const PestClassification: React.FC = () => {
   const navigation = useNavigation();
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
-      <View style={styles.page}>
+    <View style={styles.page}>
+      <ScrollView contentContainerStyle={styles.container}>
         {/* Title */}
         <Text style={styles.title}>Major Insect Pest Classification</Text>
 
@@ -26,9 +25,7 @@ const PestClassification: React.FC = () => {
             <TouchableOpacity
               key={pest.name}
               style={styles.card}
-              onPress={() =>
-                navigation.navigate("PestDetails" as never, { pest } as never)
-              }
+              onPress={() => navigation.navigate("PestDetails" as never, { pest } as never)}
               activeOpacity={0.8}
             >
               <Image source={pest.img} style={styles.cardImage} />
@@ -38,40 +35,26 @@ const PestClassification: React.FC = () => {
             </TouchableOpacity>
           ))}
         </View>
+      </ScrollView>
 
-        {/* Cacao Icon */}
-        <TouchableOpacity
-            style={{ position: "absolute", bottom: 40, right: 10, zIndex: 10 }}
-            onPress={() => navigation.navigate("ChatBotScreen" as never)}
-        >
-          <Image
-            style={styles.cacaoIcon}
-            source={require("../assets/homepics/cacaoAI.png")}
-          />
-        </TouchableOpacity>
-              
-
-        {/* Bottom Nav */}
-        <BottomNav
-          active="Home"
-          onNavigate={(screen) => navigation.navigate(screen as never)}
-        />
-      </View>
-    </SafeAreaView>
+      {/* Bottom Nav */}
+      <BottomNav
+        active="Diagnose"
+        onNavigate={(screen) => navigation.navigate(screen as never)}
+      />
+    </View>
   );
 };
 
 export default PestClassification;
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#faf8f8",
-  },
   page: {
     flex: 1,
     backgroundColor: "#faf8f8",
-    paddingHorizontal: 16,
+  },
+  container: {
+    padding: 16,
     paddingBottom: 100,
   },
   title: {
@@ -86,7 +69,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   card: {
-    width: "48%",
+    width: "48%", // Two per row with spacing
     backgroundColor: "#fff",
     borderRadius: 12,
     overflow: "hidden",
@@ -103,21 +86,12 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     padding: 8,
-    backgroundColor: "#1FA498",
+    backgroundColor: "#1FA498", // matches your feature cards
     alignItems: "center",
   },
   cardTitle: {
     fontSize: 14,
     fontWeight: "bold",
     color: "#fff",
-  },
-  cacaoIcon: {
-    width: 65,
-    height: 65,
-    position: "absolute", // makes it independent of other layout
-    bottom: 30,           // adjust this so it sits just above your BottomNav
-    right: 2,            // move it to the right side
-    resizeMode: "contain",
-    zIndex: 10,           // keep it above other elements
   },
 });

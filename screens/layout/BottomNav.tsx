@@ -4,35 +4,42 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 interface BottomNavProps {
-  active: "Home" | "Diagnose" | "Reminders" | "Profile";
+  active: "Home" | "Diagnose" | "Camera" | "Reminders" | "Profile";
   onNavigate: (screen: string) => void;
 }
 
 const BottomNav: React.FC<BottomNavProps> = ({ active, onNavigate }) => {
   return (
     <View style={styles.bottomNav}>
-      <TouchableOpacity style={styles.navItem} onPress={() => onNavigate("Home")}>
+      {/* Home */}
+      <TouchableOpacity style={styles.navItem} onPress={() => onNavigate("HomeScreen")}>
         <Ionicons name="home" size={22} color={active === "Home" ? "#1FA498" : "#777"} />
         <Text style={active === "Home" ? styles.navTextActive : styles.navText}>Home</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.navItem} onPress={() => onNavigate("PestClassification")}>
+      {/* Diagnose */}
+      <TouchableOpacity style={styles.navItem} onPress={() => onNavigate("CameraScreen")}>
         <Ionicons name="compass-outline" size={22} color={active === "Diagnose" ? "#1FA498" : "#777"} />
         <Text style={active === "Diagnose" ? styles.navTextActive : styles.navText}>Diagnose</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.navItem} onPress={() => onNavigate("Reminders")}>
+      {/* Reminders */}
+      <TouchableOpacity style={styles.navItem} onPress={() => onNavigate("RemindersScreen")}>
         <Ionicons name="alarm-outline" size={22} color={active === "Reminders" ? "#1FA498" : "#777"} />
         <Text style={active === "Reminders" ? styles.navTextActive : styles.navText}>Reminders</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.navItem} onPress={() => onNavigate("Profile")}>
+      {/* Profile */}
+      <TouchableOpacity style={styles.navItem} onPress={() => onNavigate("ProfileScreen")}>
         <Ionicons name="person-outline" size={22} color={active === "Profile" ? "#1FA498" : "#777"} />
         <Text style={active === "Profile" ? styles.navTextActive : styles.navText}>Profile</Text>
       </TouchableOpacity>
 
       {/* Floating Camera Button */}
-      <TouchableOpacity style={styles.cameraButton} onPress={() => console.log("Camera pressed")}>
+      <TouchableOpacity
+        style={[styles.cameraButton, active === "Camera" && styles.cameraButtonActive]}
+        onPress={() => onNavigate("CameraScreen")}
+      >
         <Ionicons name="camera-outline" size={28} color="#fff" />
       </TouchableOpacity>
     </View>
@@ -77,5 +84,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     elevation: 5,
+  },
+  cameraButtonActive: {
+    backgroundColor: "#168579", // slightly darker to show active state
+    transform: [{ scale: 1.1 }], // make it "pop" when active
   },
 });
