@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  ScrollView,
-} from "react-native";
+import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BottomNav from "./layout/BottomNav";

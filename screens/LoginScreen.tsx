@@ -23,6 +23,8 @@ const LoginScreen: React.FC = () => {
 
   const API_URL = "http://192.168.137.1:5000/api";
 
+  // const API_URL = "https://Kharlo.local:5000/api"; 
+
   const handleLogin = async () => {
     try {
       const res = await fetch(`${API_URL}/login`, {

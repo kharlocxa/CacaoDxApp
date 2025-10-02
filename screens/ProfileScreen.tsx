@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet,  } from "react-native";
 import BottomNav from "./layout/BottomNav";
-import { SafeAreaView } from "react-native-safe-area-context"; 
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 
 const ProfileScreen: React.FC = () => {
@@ -10,12 +10,12 @@ const ProfileScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Header / Top Banner */}
+{/* Header / Top Banner */}
         <View style={styles.header}>
           <Text style={styles.headerText}>Profile</Text>
         </View>
 
-        {/* Profile Picture + Info */}
+{/* Profile Picture + Info */}
         <View style={styles.profileInfo}>
           <Image
             // source={require("../assets/images/profile-placeholder.png")}
@@ -25,7 +25,7 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.email}>baluyotjonas@foundationu.com</Text>
         </View>
 
-        {/* Options List */}
+{/* Options List */}
         <View style={styles.options}>
           <TouchableOpacity style={styles.option}>
             <Text style={styles.optionText}>Account Security</Text>
@@ -34,6 +34,10 @@ const ProfileScreen: React.FC = () => {
 
           <TouchableOpacity style={styles.option}>
             <Text style={styles.optionText}>Saved Reports</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.option} onPress ={() => navigation.navigate("SettingsScreen" as never)}>
+            <Text style={styles.optionText}>Settings</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.option}>

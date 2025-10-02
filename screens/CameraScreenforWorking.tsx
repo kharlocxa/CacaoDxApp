@@ -6,8 +6,6 @@ import { useNavigation } from "@react-navigation/native";
 import { Camera, CameraType } from "expo-camera";
 
 
-
-
 const CameraPage: React.FC = () => {
   const navigation = useNavigation();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);

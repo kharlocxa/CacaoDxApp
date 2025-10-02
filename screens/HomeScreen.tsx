@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useState, useEffect} from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet,  } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import BottomNav from "./layout/BottomNav";
@@ -8,6 +8,14 @@ import { ImageBackground } from "react-native";
 
 const Homepage: React.FC = () => {
   const navigation = useNavigation();
+  const [stats, setStats] = useState({ total_users: 0, total_diagnoses: 0, total_diseases: 0 });
+
+  useEffect(() => {
+    fetch("http://192.168.137.1:5000/api/stats") // replace YOUR-IP with local IP or ngrok URL
+      .then((res) => res.json())
+      .then((data) => setStats(data))
+      .catch((err) => console.error(err));
+  }, []);
 
   return (
     <SafeAreaView style={styles.page}>
@@ -27,10 +35,20 @@ const Homepage: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Search */}
-        <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={18} color="#888" />
-          <Text style={styles.searchPlaceholder}>Search here</Text>
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{stats.total_users}</Text>
+            <Text style={styles.statLabel}>Users</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{stats.total_diagnoses}</Text>
+            <Text style={styles.statLabel}>Diagnoses</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{stats.total_diseases}</Text>
+            <Text style={styles.statLabel}>Diseases</Text>
+          </View>
         </View>
 
         {/* Section Title */}
@@ -217,5 +235,30 @@ const styles = StyleSheet.create({
     right: 2,            // move it to the right side
     resizeMode: "contain",
     zIndex: 10,           // keep it above other elements
+  },
+   //Stats
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: "#fff",
+    marginHorizontal: 4,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    elevation: 3,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1FA498",
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#555",
+    marginTop: 4,
   },
 });
