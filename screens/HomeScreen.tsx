@@ -6,12 +6,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { ImageBackground } from "react-native";
 
+import { API_ENDPOINTS } from '../config/api';  // ← Add this import
+
 const Homepage: React.FC = () => {
   const navigation = useNavigation();
-  const [stats, setStats] = useState({ total_users: 0, total_diagnoses: 0, total_diseases: 0 });
+  const [stats, setStats] = useState({ 
+    total_users: 0, 
+    total_diagnoses: 0, 
+    total_diseases: 0 
+  });
 
   useEffect(() => {
-    fetch("http://192.168.137.1:5000/api/stats") // replace YOUR-IP with local IP or ngrok URL
+    fetch(API_ENDPOINTS.STATS)  // ← Changed from hardcoded URL
       .then((res) => res.json())
       .then((data) => setStats(data))
       .catch((err) => console.error(err));
@@ -25,14 +31,14 @@ const Homepage: React.FC = () => {
           <View>
             <Text style={styles.smallText}>Current Location</Text>
             <View style={styles.locationRow}>
-              <Ionicons name="location-sharp" size={18} color="#1FA498" />
+              <Ionicons name="location-sharp" size={18} color="#b63c3e" />
               <Text style={styles.locationText}>Dumaguete, Negros Oriental</Text>
               <Ionicons name="chevron-down" size={16} color="#333" />
             </View>
           </View>
-          <TouchableOpacity style={styles.iconButton}>
+          {/* <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="notifications-outline" size={20} color="#333" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         {/* Stats Row */}
@@ -190,7 +196,7 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1FA498",
+    backgroundColor: "#b63c3e",
     padding: 16,
     borderRadius: 10,
     marginBottom: 16,
@@ -254,7 +260,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#1FA498",
+    color: "#b63c3e",
   },
   statLabel: {
     fontSize: 12,

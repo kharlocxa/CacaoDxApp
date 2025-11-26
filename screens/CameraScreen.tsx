@@ -1,12 +1,35 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, } from "react-native";
+import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, Alert} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BottomNav from "./layout/BottomNav";
 import { useNavigation } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
+
+
 
 const CameraPage: React.FC = () => {
   const navigation = useNavigation();
+
+  const openCamera = async () => {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission required", "Camera access is needed to capture images.");
+        return;
+      }
+  
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+  
+      if (!result.canceled) {
+        console.log("Captured image:", result.assets[0].uri);
+        // router.push({ pathname: "/capture-result", params: { uri: result.assets[0].uri } });
+      }
+    };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
@@ -34,7 +57,7 @@ const CameraPage: React.FC = () => {
 
         {/* Capture Button */}
         <View style={styles.captureBox}>
-          <TouchableOpacity style={styles.captureButton}>
+          <TouchableOpacity style={styles.captureButton} onPress={openCamera}>
             <Ionicons name="camera-outline" size={40} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.captureText}>capture image</Text>
@@ -92,7 +115,7 @@ const styles = StyleSheet.create({
   bannerTitle: {
     fontSize: 40,
     fontWeight: "bold",
-    color: "#1EA498",
+    color: "#d34c4e",
     textShadowColor: "#00000040",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
@@ -116,7 +139,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   uploadButton: {
-    backgroundColor: "#1EA498",
+    backgroundColor: "#b63c3e",
     borderRadius: 25,
     paddingVertical: 12,
     paddingHorizontal: 30,
@@ -137,7 +160,7 @@ const styles = StyleSheet.create({
   },
   uploadLink: {
     fontSize: 14,
-    color: "#1EA498",
+    color: "#b63c3e",
     textDecorationLine: "underline",
     marginTop: 4,
   },
@@ -146,7 +169,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   captureButton: {
-    backgroundColor: "#1EA498",
+    backgroundColor: "#b63c3e",
     width: 100,
     height: 100,
     borderRadius: 50,

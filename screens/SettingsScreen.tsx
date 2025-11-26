@@ -1,132 +1,482 @@
-// screens/SettingsScreen.tsx
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-} from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, Modal, } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { API_ENDPOINTS } from '../config/api';
 
-const SettingsScreen: React.FC = () => {
-  const [name, setName] = useState("John Doe");
-  const [email, setEmail] = useState("johndoe@example.com");
-  const [password, setPassword] = useState("");
+// const API_PROFILE = "http://192.168.137.1:5000/api/user/profile";
+// const API_UPDATE = "http://192.168.137.1:5000/api/user/update";
+
+const SettingsScreen: React.FC = ({ navigation }: any) => {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [contactNumber, setContactNumber] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Modal states
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState<"name" | "email" | "contact" | "password">("name");
+  const [modalValue, setModalValue] = useState("");
+  const [modalValue2, setModalValue2] = useState(""); // For first/last name
   const [secure, setSecure] = useState(true);
 
-  const handleSave = () => {
-    // TODO: call your API to update user info
-    Alert.alert("Success", "Your account settings have been updated.");
+  // Load current profile info
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setLoading(true);
+      try {
+        const token = await AsyncStorage.getItem("token");
+        if (!token) return;
+
+        console.log("Fetching profile from:", API_ENDPOINTS.PROFILE);
+
+        const response = await fetch(API_ENDPOINTS.PROFILE, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        console.log("Response status:", response.status);
+
+        const data = await response.json();
+        setFirstName(data.first_name || "");
+        setLastName(data.last_name || "");
+        setEmail(data.email || "");
+        setContactNumber(data.contact_number || "");
+      } catch (error) {
+        console.error("Error loading profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  // Open edit modal
+  const openModal = (type: "name" | "email" | "contact" | "password") => {
+    setModalType(type);
+    if (type === "name") {
+      setModalValue(firstName);
+      setModalValue2(lastName);
+    } else if (type === "email") {
+      setModalValue(email);
+    } else if (type === "contact") {
+      setModalValue(contactNumber);
+    } else {
+      setModalValue("");
+    }
+    setShowModal(true);
+    setSecure(true);
   };
 
+  // Handle Save from modal
+  const handleModalSave = async () => {
+    if (modalType === "name" && (!modalValue || !modalValue2)) {
+      Alert.alert("Error", "Both first and last name are required.");
+      return;
+    }
+    if ((modalType === "email" || modalType === "contact") && !modalValue) {
+      Alert.alert("Error", "This field is required.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        Alert.alert("Error", "Session expired. Please log in again.");
+        return;
+      }
+
+      const updateData: any = {};
+      
+      if (modalType === "name") {
+        updateData.first_name = modalValue;
+        updateData.last_name = modalValue2;
+      } else if (modalType === "email") {
+        updateData.email = modalValue;
+      } else if (modalType === "contact") {
+        updateData.contact_number = modalValue;
+      } else if (modalType === "password") {
+        if (!modalValue) {
+          Alert.alert("Error", "Password cannot be empty.");
+          return;
+        }
+        updateData.password = modalValue;
+      }
+
+      const response = await fetch(API_ENDPOINTS.UPDATE_PROFILE, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update");
+      }
+
+      // Update local state
+      if (modalType === "name") {
+        setFirstName(modalValue);
+        setLastName(modalValue2);
+      } else if (modalType === "email") {
+        setEmail(modalValue);
+      } else if (modalType === "contact") {
+        setContactNumber(modalValue);
+      }
+
+      Alert.alert("Success", "Updated successfully.");
+      setShowModal(false);
+    } catch (error: any) {
+      console.error("Update error:", error);
+      Alert.alert("Error", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Logout
+  const handleLogout = async () => {
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          await AsyncStorage.removeItem("token");
+          await AsyncStorage.removeItem("userToken");
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "Login" }],
+          });
+        },
+      },
+    ]);
+  };
+
+  if (loading && !firstName) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color="#018241" />
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <View style={styles.page}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Account Settings</Text>
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Settings</Text>
+        <View style={{ width: 24 }} />
+      </View>
 
-        {/* Name */}
-        <TextInput
-          style={styles.input}
-          placeholder="Full Name"
-          value={name}
-          onChangeText={setName}
-        />
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Profile Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Profile Information</Text>
 
-        {/* Email */}
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
+          {/* Name */}
+          <TouchableOpacity style={styles.settingItem} onPress={() => openModal("name")}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="person-outline" size={22} color="#666" />
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingLabel}>Name</Text>
+                <Text style={styles.settingValue}>
+                  {firstName} {lastName}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
 
-        {/* Password */}
-        <View style={styles.passwordContainer}>
-          <TextInput
-            style={[styles.input, { flex: 1, marginBottom: 0 }]}
-            placeholder="New Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={secure}
-          />
-          <TouchableOpacity
-            onPress={() => setSecure(!secure)}
-            style={styles.eyeButton}
-          >
-            <Ionicons
-              name={secure ? "eye-off-outline" : "eye-outline"}
-              size={22}
-              color="#444"
-            />
+          {/* Email */}
+          <TouchableOpacity style={styles.settingItem} onPress={() => openModal("email")}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="mail-outline" size={22} color="#666" />
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingLabel}>Email</Text>
+                <Text style={styles.settingValue}>{email}</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+
+          {/* Contact Number */}
+          <TouchableOpacity style={styles.settingItem} onPress={() => openModal("contact")}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="call-outline" size={22} color="#666" />
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingLabel}>Contact Number</Text>
+                <Text style={styles.settingValue}>{contactNumber || "Not set"}</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+
+          {/* Password */}
+          <TouchableOpacity style={styles.settingItem} onPress={() => openModal("password")}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="lock-closed-outline" size={22} color="#666" />
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingLabel}>Password</Text>
+                <Text style={styles.settingValue}>••••••••</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
         </View>
+      </ScrollView>
 
-        <TouchableOpacity style={styles.primaryButton} onPress={handleSave}>
-          <Text style={styles.buttonText}>Save Changes</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      {/* Edit Modal */}
+      <Modal
+        visible={showModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              Edit {modalType === "name" ? "Name" : modalType === "email" ? "Email" : modalType === "contact" ? "Contact Number" : "Password"}
+            </Text>
+
+            {modalType === "name" ? (
+              <>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="First Name"
+                  value={modalValue}
+                  onChangeText={setModalValue}
+                />
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Last Name"
+                  value={modalValue2}
+                  onChangeText={setModalValue2}
+                />
+              </>
+            ) : modalType === "password" ? (
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={[styles.modalInput, styles.passwordInput]}
+                  placeholder="New Password"
+                  value={modalValue}
+                  onChangeText={setModalValue}
+                  secureTextEntry={secure}
+                />
+                <TouchableOpacity onPress={() => setSecure(!secure)} style={styles.eyeButton}>
+                  <Ionicons name={secure ? "eye-off-outline" : "eye-outline"} size={22} color="#666" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TextInput
+                style={styles.modalInput}
+                placeholder={modalType === "email" ? "Email" : "Contact Number"}
+                value={modalValue}
+                onChangeText={setModalValue}
+                keyboardType={modalType === "email" ? "email-address" : "phone-pad"}
+                autoCapitalize="none"
+              />
+            )}
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.saveButton]}
+                onPress={handleModalSave}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 };
 
 export default SettingsScreen;
 
 const styles = StyleSheet.create({
-  page: {
+  container: {
     flex: 1,
-    backgroundColor: "#faf8f8",
+    backgroundColor: "#f0f2f5",
+  },
+  centerContent: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e4e6eb",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#000",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  section: {
+    backgroundColor: "#fff",
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#000",
+    marginBottom: 12,
+  },
+  settingItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f2f5",
+  },
+  settingLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  settingTextContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  settingLabel: {
+    fontSize: 13,
+    color: "#65676b",
+    marginBottom: 2,
+  },
+  settingValue: {
+    fontSize: 15,
+    color: "#000",
+    fontWeight: "500",
+  },
+  button: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 8,
+    gap: 8,
+  },
+  logoutButton: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#d32f2f",
+  },
+  logoutText: {
+    color: "#d32f2f",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  versionContainer: {
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  versionText: {
+    fontSize: 13,
+    color: "#65676b",
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
-  container: {
+  modalContent: {
     backgroundColor: "#fff",
-    borderRadius: 10,
+    borderRadius: 12,
+    padding: 20,
     width: "100%",
     maxWidth: 400,
-    padding: 20,
-    elevation: 3,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
     color: "#000",
-    marginBottom: 15,
-    textAlign: "center",
+    marginBottom: 16,
   },
-  input: {
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    fontSize: 16,
-    marginBottom: 15,
+  modalInput: {
+    backgroundColor: "#f0f2f5",
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 8,
+    fontSize: 15,
+    color: "#000",
+    marginBottom: 12,
   },
   passwordContainer: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    marginBottom: 15,
+    backgroundColor: "#f0f2f5",
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  passwordInput: {
+    flex: 1,
+    marginBottom: 0,
   },
   eyeButton: {
-    padding: 10,
+    paddingHorizontal: 12,
   },
-  primaryButton: {
-    backgroundColor: "#018241",
-    padding: 15,
-    borderRadius: 5,
+  modalButtons: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: "center",
-    marginTop: 10,
   },
-  buttonText: {
-    color: "white",
-    fontWeight: "bold",
+  cancelButton: {
+    backgroundColor: "#f0f2f5",
+  },
+  cancelButtonText: {
+    color: "#000",
     fontSize: 16,
+    fontWeight: "500",
+  },
+  saveButton: {
+    backgroundColor: "#b63c3e",
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

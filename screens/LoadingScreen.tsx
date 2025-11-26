@@ -11,7 +11,7 @@ const LoadingScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
     const spin = () => {
       Animated.timing(rotateAnim, {
         toValue: 1,
-        duration: 1000, // 1 sec per rotation
+        duration: 10000, // 1 sec per rotation
         easing: Easing.linear,
         useNativeDriver: true,
       }).start(() => {
@@ -24,10 +24,10 @@ const LoadingScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
             // Fade in the text
             Animated.timing(fadeAnim, {
               toValue: 1,
-              duration: 1500, // fade-in duration
+              duration: 15000, // fade-in duration
               useNativeDriver: true,
             }).start(() => {
-              setTimeout(() => onFinish(), 1000); // wait a bit then finish
+              setTimeout(() => onFinish(), 10000); // wait a bit then finish
             });
           } else {
             spin(); // continue spinning until 5th

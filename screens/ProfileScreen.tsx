@@ -1,59 +1,173 @@
-import React from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet,  } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import BottomNav from "./layout/BottomNav";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
+import { API_ENDPOINTS } from '../config/api';
+
+// const API_URL = "http://192.168.137.1:5000/api/user/profile"; 
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation();
 
+  const [user, setUser] = useState<{ 
+    first_name: string; 
+    last_name: string; 
+    email: string;
+    contact_number?: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        if (!token) {
+          Alert.alert("Session expired", "Please log in again.");
+          navigation.navigate("Login" as never);
+          return;
+        }
+
+        console.log("Fetching profile from:", API_ENDPOINTS.PROFILE);
+
+        // const response = await fetch(API_URL, {
+        //   method: "GET",
+        //   headers: { Authorization: `Bearer ${token}` },
+        // });
+
+        const response = await fetch(API_ENDPOINTS.PROFILE, {  // ← Use it here
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        console.log("Response status:", response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.log("Error:", errorText);
+          throw new Error("Failed to load profile");
+        }
+
+        const data = await response.json();
+        console.log("Profile data:", data);
+        setUser(data);
+      } catch (error) {
+        console.error("Profile fetch error:", error);
+        Alert.alert("Error", "Unable to fetch profile info");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  // Handle logout
+
+const handleLogout = async () => {
+  Alert.alert(
+    "Logout",
+    "Are you sure you want to logout?",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const token = await AsyncStorage.getItem("token");
+            const headers = { Authorization: `Bearer ${token}` };
+            const response = await fetch(API_ENDPOINTS.LOGOUT, {
+              method: "POST",
+              headers,
+            });
+
+            if (!response.ok) {
+              console.warn("Logout failed:", await response.text());
+            }
+
+            await AsyncStorage.multiRemove(["token", "userToken", "user"]);
+
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Login" as never }],
+            });
+          } catch (error) {
+            console.error("Logout error:", error);
+            Alert.alert("Network Error", "Unable to reach the server. Check your internet or API URL.");
+          }
+        },
+      },
+    ]
+  );
+};
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-{/* Header / Top Banner */}
-        <View style={styles.header}>
-          <Text style={styles.headerText}>Profile</Text>
-        </View>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#376F6A" />
+          </View>
+        ) : (
+          <>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.headerText}>Profile</Text>
+            </View>
 
-{/* Profile Picture + Info */}
-        <View style={styles.profileInfo}>
-          <Image
-            // source={require("../assets/images/profile-placeholder.png")}
-            style={styles.avatar}
-          />
-          <Text style={styles.name}>Jonas Baluyot</Text>
-          <Text style={styles.email}>baluyotjonas@foundationu.com</Text>
-        </View>
+            {/* Profile Info */}
+            <View style={styles.profileInfo}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {user?.first_name?.[0]}{user?.last_name?.[0]}
+                </Text>
+              </View>
+              <Text style={styles.name}>
+                {user?.first_name && user?.last_name 
+                  ? `${user.first_name} ${user.last_name}` 
+                  : "Unknown User"}
+              </Text>
+              <Text style={styles.email}>{user?.email || "No email"}</Text>
+              {user?.contact_number && (
+                <Text style={styles.contact}>{user.contact_number}</Text>
+              )}
+            </View>
 
-{/* Options List */}
-        <View style={styles.options}>
-          <TouchableOpacity style={styles.option}>
-            <Text style={styles.optionText}>Account Security</Text>
-            <Text style={styles.subText}>Excellent</Text>
-          </TouchableOpacity>
+            {/* Options */}
+            <View style={styles.options}>
+              <TouchableOpacity style={styles.option}>
+                <Text style={styles.optionText}>Account Security</Text>
+                <Text style={styles.subText}>Excellent</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity style={styles.option}>
-            <Text style={styles.optionText}>Saved Reports</Text>
-          </TouchableOpacity>
+              <TouchableOpacity style={styles.option}>
+                <Text style={styles.optionText}>Saved Reports</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity style={styles.option} onPress ={() => navigation.navigate("SettingsScreen" as never)}>
-            <Text style={styles.optionText}>Settings</Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.option}
+                onPress={() => navigation.navigate("SettingsScreen" as never)}
+              >
+                <Text style={styles.optionText}>Settings</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity style={styles.option}>
-            <Text style={styles.optionText}>Feedback</Text>
-          </TouchableOpacity>
+              <TouchableOpacity style={styles.option}>
+                <Text style={styles.optionText}>Feedback</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.option, styles.logout]}
-            onPress={() => navigation.navigate("Login" as never)}
-          >
-            <Text style={[styles.optionText, { color: "#d9534f" }]}>Logout</Text>
-          </TouchableOpacity>
-        </View>
+              <TouchableOpacity
+                style={[styles.option, styles.logout]}
+                onPress={handleLogout}
+              >
+                <Text style={[styles.optionText, { color: "#d9534f" }]}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </View>
 
-      {/* ✅ Move BottomNav outside of container so it stays fixed at bottom */}
+      {/* Bottom navigation always visible */}
       <BottomNav
         active="Profile"
         onNavigate={(screen) => navigation.navigate(screen as never)}
@@ -67,16 +181,20 @@ export default ProfileScreen;
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#376F6A", // Match header background for notch area
+    backgroundColor: "#b63c3e",
   },
   container: {
     flex: 1,
     backgroundColor: "#faf8f8",
-    paddingHorizontal: 0,
-    paddingBottom: 16, // slight bottom padding so last option doesn't touch nav
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#faf8f8",
   },
   header: {
-    backgroundColor: "#376F6A",
+    backgroundColor: "#b63c3e",
     paddingVertical: 20,
     alignItems: "center",
   },
@@ -94,7 +212,14 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     marginBottom: 10,
-    backgroundColor: "#ddd",
+    backgroundColor: "#018241",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarText: {
+    fontSize: 40,
+    fontWeight: "bold",
+    color: "#fff",
   },
   name: {
     fontSize: 22,
@@ -104,6 +229,12 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 14,
     color: "#555",
+    marginTop: 4,
+  },
+  contact: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 2,
   },
   options: {
     marginTop: 30,

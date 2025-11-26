@@ -4,7 +4,7 @@ import Checkbox from "expo-checkbox";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, getAuthHeaders } from "../config/api";
 
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -12,9 +12,6 @@ const LoginScreen: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [secure, setSecure] = useState(true);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [contactNumber, setContactNumber] = useState("");
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [farmLocation, setFarmLocation] = useState(""); //NEW: farm location input
 
@@ -31,17 +28,11 @@ const LoginScreen: React.FC = () => {
 
   const handleLogin = async () => {
     try {
-
-      console.log("Logging in with:", { email, password });
-      console.log("API URL:", API_ENDPOINTS.LOGIN);
-
-      const res = await fetch(API_ENDPOINTS.LOGIN, {  // ← Remove the /login
+      const res = await fetch(`${API_ENDPOINTS.LOGIN}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
-      console.log("Response status:", res.status);
 
       const data = await res.json();
 
@@ -51,12 +42,7 @@ const LoginScreen: React.FC = () => {
       }
 
       await AsyncStorage.setItem("token", data.token);
-      console.log("Login successful, token saved");
-      console.log("Token saved:", data.token);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "HomeScreen" as never }],
-      });
+      navigation.navigate("HomeScreen" as never);
     } catch (error) {
       console.error("Login error:", error);
       Alert.alert("Error", "Something went wrong, try again.");
@@ -69,29 +55,23 @@ const LoginScreen: React.FC = () => {
       return;
     }
 
-    // Validate required fields
-    if (!firstName.trim() || !lastName.trim() || !contactNumber.trim()) {
-      Alert.alert("Error", "Please fill in all required fields.");
-      return;
-    }
-
     if (accountType === "farmer" && !farmLocation.trim()) {
       Alert.alert("Error", "Please enter your farm location.");
       return;
     }
 
     try {
-      const res = await fetch(API_ENDPOINTS.REGISTER, {
+      const res = await fetch(`${API_ENDPOINTS.REGISTER}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          first_name: firstName,        
-          last_name: lastName,          
+          first_name: "Test",
+          last_name: "User",
           email,
           password,
-          contact_number: contactNumber, 
-          user_type_id: accountType === "farmer" ? 2 : 1,
-          farm_location: accountType === "farmer" ? farmLocation : null,
+          contact_number: "0000000000",
+          user_type_id: accountType === "farmer" ? 2 : 1, // auto-assign farmer
+          farm_location: accountType === "farmer" ? farmLocation : null, // send farm location if farmer
         }),
       });
 
@@ -192,7 +172,7 @@ const LoginScreen: React.FC = () => {
                 <Checkbox
                   value={rememberMe}
                   onValueChange={setRememberMe}
-                  color={rememberMe ? "#b63c3e" : undefined}
+                  color={rememberMe ? "#1FA498" : undefined}
                   style={styles.checkbox}
                 />
                 <Text style={styles.checkboxLabel}>Remember Me</Text>
@@ -206,34 +186,12 @@ const LoginScreen: React.FC = () => {
           </>
         )}
 
-{/* REGISTER FORM */}
+        {/* REGISTER FORM */}
         {activeTab === "register" && (
           <>
             <Text style={styles.title}>
               Create Account ({accountType === "farmer" ? "Farmer" : "Student"})
             </Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="First Name"
-              value={firstName}
-              onChangeText={setFirstName}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Last Name"
-              value={lastName}
-              onChangeText={setLastName}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Contact Number"
-              value={contactNumber}
-              onChangeText={setContactNumber}
-              keyboardType="phone-pad"
-            />
 
             <TextInput
               style={styles.input}
@@ -331,7 +289,7 @@ const styles = StyleSheet.create({
   },
   activeTabText: {
     fontWeight: "bold",
-    color: "#b63c3e",
+    color: "#018241",
   },
   activeTab: {
     borderBottomWidth: 2,
@@ -349,7 +307,7 @@ const styles = StyleSheet.create({
     left: 0,
     width: "50%",
     height: 2,
-    backgroundColor: "#b63c3e",
+    backgroundColor: "#018241",
   },
 
   title: {
@@ -399,11 +357,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   link: {
-    color: "#b63c3e",
+    color: "#018241",
     fontSize: 14,
   },
   primaryButton: {
-    backgroundColor: "#b63c3e",
+    backgroundColor: "#018241",
     padding: 15,
     borderRadius: 5,
     alignItems: "center",

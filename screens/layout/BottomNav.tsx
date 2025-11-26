@@ -4,7 +4,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 interface BottomNavProps {
-  active: "Home" | "Diagnose" | "Camera" | "Reminders" | "Profile";
+  active: "Home" | "History" | "Camera" | "Reminders" | "Profile";
   onNavigate: (screen: string) => void;
 }
 
@@ -16,19 +16,19 @@ const BottomNav: React.FC<BottomNavProps> = ({ active, onNavigate }) => {
       <View style={styles.bottomNav}>
         {/* Home */}
         <TouchableOpacity style={styles.navItem} onPress={() => onNavigate("HomeScreen")}>
-          <Ionicons name="home" size={22} color={active === "Home" ? "#1FA498" : "#777"} />
+          <Ionicons name="home" size={22} color={active === "Home" ? "#b63c3e" : "#777"} />
           <Text style={active === "Home" ? styles.navTextActive : styles.navText}>Home</Text>
         </TouchableOpacity>
 
         {/* Diagnose */}
-        <TouchableOpacity style={styles.navItem} onPress={() => onNavigate("CameraScreen")}>
+        <TouchableOpacity style={styles.navItem} onPress={() => onNavigate("DiagnosticHistory")}>
           <Ionicons
             name="compass-outline"
             size={22}
-            color={active === "Diagnose" ? "#1FA498" : "#777"}
+            color={active === "History" ? "#b63c3e" : "#777"}
           />
-          <Text style={active === "Diagnose" ? styles.navTextActive : styles.navText}>
-            Diagnose
+          <Text style={active === "History" ? styles.navTextActive : styles.navText}>
+            History
           </Text>
         </TouchableOpacity>
 
@@ -42,7 +42,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ active, onNavigate }) => {
             <Ionicons
               name="camera-outline"
               size={22}
-              color={active === "Camera" ? "#1FA498" : "#777"}
+              color={active === "Camera" ? "#b63c3e" : "#777"}
             />
             <Text style={active === "Camera" ? styles.navTextActive : styles.navText}>Camera</Text>
           </TouchableOpacity>
@@ -53,7 +53,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ active, onNavigate }) => {
           <Ionicons
             name="alarm-outline"
             size={22}
-            color={active === "Reminders" ? "#1FA498" : "#777"}
+            color={active === "Reminders" ? "#b63c3e" : "#777"}
           />
           <Text style={active === "Reminders" ? styles.navTextActive : styles.navText}>
             Reminders
@@ -65,7 +65,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ active, onNavigate }) => {
           <Ionicons
             name="person-outline"
             size={22}
-            color={active === "Profile" ? "#1FA498" : "#777"}
+            color={active === "Profile" ? "#b63c3e" : "#777"}
           />
           <Text style={active === "Profile" ? styles.navTextActive : styles.navText}>Profile</Text>
         </TouchableOpacity>
@@ -74,7 +74,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ active, onNavigate }) => {
       {/* Floating Camera Button (only when Home is active) */}
       {isHome && (
         <TouchableOpacity
-          style={[styles.cameraButton, active === "Camera" && styles.cameraButtonActive]}
+          style={styles.cameraButton}
           onPress={() => onNavigate("CameraScreen")}
         >
           <Ionicons name="camera-outline" size={28} color="#fff" />
@@ -114,13 +114,13 @@ const styles = StyleSheet.create({
   },
   navTextActive: {
     fontSize: 12,
-    color: "#1FA498",
+    color: "#b63c3e",
     fontWeight: "bold",
   },
   cameraButton: {
     position: "absolute",
     top: -30,
-    backgroundColor: "#1FA498",
+    backgroundColor: "#b63c3e",
     width: 65,
     height: 65,
     borderRadius: 32.5,
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   cameraButtonActive: {
-    backgroundColor: "#168579",
+    backgroundColor: "#b63c3e",
     transform: [{ scale: 1.1 }],
   },
 });

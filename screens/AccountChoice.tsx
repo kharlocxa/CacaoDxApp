@@ -14,8 +14,8 @@ const AccountChoice: React.FC = () => {
         style={styles.button}
         onPress={() =>
           navigation.navigate("Login" as never, {
-            accountType: "student",  // ✅ Pass param
-            openTab: "register",    // ✅ Tell LoginScreen to open register tab
+            accountType: "student",  
+            openTab: "register",    // Tell LoginScreen to open register tab
           } as never)
         }
       >
