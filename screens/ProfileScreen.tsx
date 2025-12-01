@@ -107,7 +107,7 @@ const handleLogout = async () => {
       <View style={styles.container}>
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#376F6A" />
+            <ActivityIndicator size="large" color="#b63c3e" />
           </View>
         ) : (
           <>
@@ -152,7 +152,10 @@ const handleLogout = async () => {
                 <Text style={styles.optionText}>Settings</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.option}>
+              <TouchableOpacity
+                style={styles.option}
+                onPress={() => navigation.navigate("FeedbackScreen" as never)}
+              >
                 <Text style={styles.optionText}>Feedback</Text>
               </TouchableOpacity>
 
@@ -195,7 +198,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#b63c3e",
-    paddingVertical: 20,
+    paddingVertical: 10,
     alignItems: "center",
   },
   headerText: {

@@ -26,7 +26,6 @@ const LoginScreen: React.FC = () => {
     ?.accountType || "student";
 
   // const API_URL = "http://192.168.137.1:5000/api";
-
   // const API_URL = "https://Kharlo.local:5000/api"; 
 
   const handleLogin = async () => {
@@ -81,27 +80,38 @@ const LoginScreen: React.FC = () => {
     }
 
     try {
+      const requestBody = {
+        first_name: firstName,        
+        last_name: lastName,          
+        email,
+        password,
+        contact_number: contactNumber, 
+        user_type_id: accountType === "farmer" ? 1 : 3,
+        farm_location: accountType === "farmer" ? farmLocation : null,
+      };
+
+      console.log("Sending registration request:");
+      console.log("API URL:", API_ENDPOINTS.REGISTER);
+      console.log("Request body:", requestBody);
+
       const res = await fetch(API_ENDPOINTS.REGISTER, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          first_name: firstName,        
-          last_name: lastName,          
-          email,
-          password,
-          contact_number: contactNumber, 
-          user_type_id: accountType === "farmer" ? 2 : 1,
-          farm_location: accountType === "farmer" ? farmLocation : null,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      console.log("Response status:", res.status);
+      
       const data = await res.json();
+      console.log("Response data:", data);
 
       if (!res.ok) {
-        Alert.alert("Register failed", data.message || "Try again");
+        // console.error("Registration failed:", data);
+        Alert.alert("Registration failed", data.message || JSON.stringify(data));
         return;
       }
 
+      console.log("Registration successful!");
       Alert.alert("Success", "Account created. Please login.");
       setActiveTab("login");
     } catch (error) {
@@ -335,7 +345,7 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: "#018241",
+    borderBottomColor: "#b63c3e",
   },
   tabUnderline: {
     height: 2,

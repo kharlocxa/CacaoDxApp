@@ -15,6 +15,7 @@ import RemindersScreen from "./screens/RemindersScreen";
 import ChatBot from "./screens/ChatBotScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import DiagnosticHistory from "./screens/DiagnoseScreen"; 
+import FeedbackScreen from "./screens/FeedBack";
 
 const Stack = createNativeStackNavigator();
 
@@ -69,7 +70,7 @@ export default function App() {
           name="Login"
           component={LoginScreen}
           initialParams={{ accountType: "student" }}
-          options={{ gestureEnabled: false }}
+          options={{ gestureEnabled: true }}
         />
         
         {/* Disable swipe back on HomeScreen (main app entry) */}
@@ -88,6 +89,7 @@ export default function App() {
         <Stack.Screen name="PestDetails" component={PestDetails} />
         <Stack.Screen name="ChatBotScreen" component={ChatBot} />
         <Stack.Screen name="SettingsScreen" component={SettingsScreen} />
+        <Stack.Screen name="FeedbackScreen" component={FeedbackScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -105,7 +105,7 @@ const DiagnosticHistory: React.FC = () => {
       <View style={styles.container}>
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#018241" />
+            <ActivityIndicator size="large" color="#b63c3e" />
           </View>
         ) : history.length > 0 ? (
           <FlatList
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     backgroundColor: "#b63c3e",  // Match the SafeAreaView color
-    paddingVertical: 20,
+    paddingVertical: 10,
     paddingHorizontal: 15,
     alignItems: "center",
   },

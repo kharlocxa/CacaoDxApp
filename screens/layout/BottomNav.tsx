@@ -9,8 +9,6 @@ interface BottomNavProps {
 }
 
 const BottomNav: React.FC<BottomNavProps> = ({ active, onNavigate }) => {
-  const isHome = active === "Home";
-
   return (
     <View style={styles.wrapper}>
       <View style={styles.bottomNav}>
@@ -20,7 +18,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ active, onNavigate }) => {
           <Text style={active === "Home" ? styles.navTextActive : styles.navText}>Home</Text>
         </TouchableOpacity>
 
-        {/* Diagnose */}
+        {/* History */}
         <TouchableOpacity style={styles.navItem} onPress={() => onNavigate("DiagnosticHistory")}>
           <Ionicons
             name="compass-outline"
@@ -32,21 +30,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ active, onNavigate }) => {
           </Text>
         </TouchableOpacity>
 
-        {/* Camera (special handling) */}
-        {isHome ? (
-          // Floating button when on Home
-          <View style={styles.navItem} />
-        ) : (
-          // Normal button on other screens
-          <TouchableOpacity style={styles.navItem} onPress={() => onNavigate("CameraScreen")}>
-            <Ionicons
-              name="camera-outline"
-              size={22}
-              color={active === "Camera" ? "#b63c3e" : "#777"}
-            />
-            <Text style={active === "Camera" ? styles.navTextActive : styles.navText}>Camera</Text>
-          </TouchableOpacity>
-        )}
+        {/* Empty space for floating camera button */}
+        <View style={styles.navItem} />
 
         {/* Reminders */}
         <TouchableOpacity style={styles.navItem} onPress={() => onNavigate("RemindersScreen")}>
@@ -71,15 +56,13 @@ const BottomNav: React.FC<BottomNavProps> = ({ active, onNavigate }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Floating Camera Button (only when Home is active) */}
-      {isHome && (
-        <TouchableOpacity
-          style={styles.cameraButton}
-          onPress={() => onNavigate("CameraScreen")}
-        >
-          <Ionicons name="camera-outline" size={28} color="#fff" />
-        </TouchableOpacity>
-      )}
+      {/* Floating Camera Button (always visible on all screens) */}
+      <TouchableOpacity
+        style={styles.cameraButton}
+        onPress={() => onNavigate("CameraScreen")}
+      >
+        <Ionicons name="camera-outline" size={28} color="#fff" />
+      </TouchableOpacity>
     </View>
   );
 };

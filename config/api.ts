@@ -25,6 +25,9 @@ export const API_ENDPOINTS = {
   
   // STATS
   STATS: `${API_BASE_URL}/api/stats`,
+  
+  //FEEDBACK
+  FEEDBACK: `${API_BASE_URL}/api/feedback`,
 };
 
 // Helper function to get headers with token

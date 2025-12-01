@@ -5,9 +5,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_ENDPOINTS } from '../config/api';
 
-// const API_PROFILE = "http://192.168.137.1:5000/api/user/profile";
-// const API_UPDATE = "http://192.168.137.1:5000/api/user/update";
-
 const SettingsScreen: React.FC = ({ navigation }: any) => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -163,20 +160,20 @@ const SettingsScreen: React.FC = ({ navigation }: any) => {
   if (loading && !firstName) {
     return (
       <SafeAreaView style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color="#018241" />
+        <ActivityIndicator size="large" color="#b63c3e" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+      <View style={styles.headerContainer}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
-        <View style={{ width: 24 }} />
+        <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -319,29 +316,35 @@ export default SettingsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f0f2f5",
+    backgroundColor: "#fafafa",
   },
   centerContent: {
     justifyContent: "center",
     alignItems: "center",
   },
-  header: {
+  headerContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e4e6eb",
+    backgroundColor: "#b63c3e",
+    paddingTop: 50,
+    paddingBottom: 12,
+    paddingHorizontal: 15,
+  },
+  backButton: {
+    width: 40,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#000",
+    color: "#fff",
+    fontSize: 22,
+    fontWeight: "bold",
+  },
+  placeholder: {
+    width: 40,
   },
   scrollView: {
     flex: 1,
+    backgroundColor: "#fafafa",
   },
   section: {
     backgroundColor: "#fff",
