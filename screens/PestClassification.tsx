@@ -1,84 +1,198 @@
-import React from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity, } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import BottomNav from "./layout/BottomNav";
 import { useNavigation } from "@react-navigation/native";
+import { API_ENDPOINTS, API_BASE_URL, getAuthHeaders } from "../config/api";
 
-const pests = [
-  { name: "Mealybugs", img: require("../assets/pests/mealybugs.jpg") },
-  { name: "Cacao Pod Borer", img: require("../assets/pests/cacao-pod-borer.jpeg") },
-  { name: "Cacao Mirid", img: require("../assets/pests/cacao-mirids.jpg") },
-  { name: "Cacao Weevil", img: require("../assets/pests/cacao-weevil.jpg") },
-];
+type Pest = {
+  id: number;
+  name: string;
+  image: string;
+};
 
 const PestClassification: React.FC = () => {
   const navigation = useNavigation();
+  const [pests, setPests] = useState<Pest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchPests();
+  }, []);
+
+  const fetchPests = async () => {
+    try {
+      console.log("Fetching from:", API_ENDPOINTS.PESTS);
+      
+      // Get authentication headers
+      const headers = await getAuthHeaders();
+      
+      const res = await fetch(API_ENDPOINTS.PESTS, {
+        method: 'GET',
+        headers: headers,
+      });
+      
+      console.log("Response status:", res.status);
+      console.log("Response ok:", res.ok);
+      
+      const text = await res.text();
+      console.log("Raw response text:", text);
+      
+      let result;
+      try {
+        result = JSON.parse(text);
+        console.log("Parsed JSON:", result);
+      } catch (e) {
+        console.log("Failed to parse JSON:", e);
+        setError("Failed to parse server response");
+        setPests([]);
+        setLoading(false);
+        return;
+      }
+
+      // Check for authentication errors
+      if (!res.ok) {
+        if (res.status === 401) {
+          setError("Authentication failed. Please log in again.");
+        } else {
+          setError(result.message || "Failed to load pests");
+        }
+        setPests([]);
+        setLoading(false);
+        return;
+      }
+
+      // Handle different response formats
+      if (result.status === 'success' && Array.isArray(result.data)) {
+        console.log("Setting pests from result.data");
+        setPests(result.data);
+        setError(null);
+      } else if (Array.isArray(result)) {
+        console.log("Result is array, setting pests");
+        setPests(result);
+        setError(null);
+      } else {
+        console.warn("Unexpected response format:", result);
+        setError("Unexpected data format from server");
+        setPests([]);
+      }
+    } catch (error) {
+      console.error("Failed to load pests:", error);
+      setError("Network error. Please check your connection.");
+      setPests([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
-      <View style={styles.page}>
-        {/* Title */}
-        <Text style={styles.title}>Major Insect Pest Classification</Text>
-
-        {/* 2x2 Grid */}
-        <View style={styles.grid}>
-          {pests.map((pest) => (
-            <TouchableOpacity
-              key={pest.name}
-              style={styles.card}
-              onPress={() =>
-                navigation.navigate("PestDetails" as never, { pest } as never)
-              }
-              activeOpacity={0.8}
-            >
-              <Image source={pest.img} style={styles.cardImage} />
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{pest.name}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Cacao Icon */}
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
         <TouchableOpacity
-            style={{ position: "absolute", bottom: 40, right: 10, zIndex: 10 }}
-            onPress={() => navigation.navigate("ChatBotScreen" as never)}
+          onPress={() => navigation.goBack()}
+          style={styles.headerButton}
         >
-          <Image
-            style={styles.cacaoIcon}
-            source={require("../assets/homepics/cacaoAI.png")}
-          />
+          <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-              
-
-        {/* Bottom Nav */}
-        <BottomNav
-          active="Home"
-          onNavigate={(screen) => navigation.navigate(screen as never)}
-        />
+        <Text style={styles.headerTitle}>Major Insect Pest Classification</Text>
+        <View style={styles.headerButton} />
       </View>
-    </SafeAreaView>
+
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#b63c3e" />
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={64} color="#d32f2f" />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={fetchPests}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : pests.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="bug-outline" size={64} color="#999" />
+            <Text style={styles.emptyText}>No pests available</Text>
+          </View>
+        ) : (
+          <View style={styles.grid}>
+            {pests.map((pest) => (
+              <TouchableOpacity
+                key={pest.id}
+                style={styles.card}
+                onPress={() =>
+                  navigation.navigate("PestDetails" as never, { pestId: pest.id } as never)
+                }
+              >
+                <Image
+                  source={{ uri: `${API_BASE_URL}/uploads/pests/${pest.image}` }}
+                  style={styles.cardImage}
+                />
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>{pest.name}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+
+      <BottomNav active="Diagnose" onNavigate={(screen) => navigation.navigate(screen as never)} />
+    </View>
   );
 };
 
 export default PestClassification;
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: "#faf8f8",
   },
-  page: {
-    flex: 1,
-    backgroundColor: "#faf8f8",
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#b63c3e",
+    paddingTop: 50,  // Manual padding for status bar
+    paddingBottom: 12,
     paddingHorizontal: 16,
-    paddingBottom: 100,
   },
-  title: {
-    fontSize: 20,
+  headerButton: {
+    width: 40,
+    alignItems: "center",
+  },
+  headerTitle: {
+    color: "#fff",
+    fontSize: 18,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 20,
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 100,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 100,
   },
   grid: {
     flexDirection: "row",
@@ -103,7 +217,7 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     padding: 8,
-    backgroundColor: "#1FA498",
+    backgroundColor: "#b63c3e",
     alignItems: "center",
   },
   cardTitle: {
@@ -111,13 +225,41 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#fff",
   },
-  cacaoIcon: {
-    width: 65,
-    height: 65,
-    position: "absolute", // makes it independent of other layout
-    bottom: 30,           // adjust this so it sits just above your BottomNav
-    right: 2,            // move it to the right side
-    resizeMode: "contain",
-    zIndex: 10,           // keep it above other elements
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 100,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#d32f2f",
+    textAlign: "center",
+    marginTop: 16,
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  retryButton: {
+    backgroundColor: "#b63c3e",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 100,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginTop: 16,
   },
 });

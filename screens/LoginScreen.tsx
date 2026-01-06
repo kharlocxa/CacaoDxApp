@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import Checkbox from "expo-checkbox";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -12,29 +12,26 @@ const LoginScreen: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [secure, setSecure] = useState(true);
+  const [secureConfirm, setSecureConfirm] = useState(true);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [contactNumber, setContactNumber] = useState("");
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
-  const [farmLocation, setFarmLocation] = useState(""); //NEW: farm location input
+  const [barangay, setBarangay] = useState("");
+  const [municipality, setMunicipality] = useState("");
 
   const navigation = useNavigation();
   const route = useRoute();
 
-  // Get accountType from navigation params (passed from your account choice screen)
   const accountType = (route.params as { accountType?: "student" | "farmer" })
     ?.accountType || "student";
 
-  // const API_URL = "http://192.168.137.1:5000/api";
-  // const API_URL = "https://Kharlo.local:5000/api"; 
-
   const handleLogin = async () => {
     try {
-
       console.log("Logging in with:", { email, password });
       console.log("API URL:", API_ENDPOINTS.LOGIN);
 
-      const res = await fetch(API_ENDPOINTS.LOGIN, {  // ← Remove the /login
+      const res = await fetch(API_ENDPOINTS.LOGIN, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -68,26 +65,30 @@ const LoginScreen: React.FC = () => {
       return;
     }
 
-    // Validate required fields
     if (!firstName.trim() || !lastName.trim() || !contactNumber.trim()) {
       Alert.alert("Error", "Please fill in all required fields.");
       return;
     }
 
-    if (accountType === "farmer" && !farmLocation.trim()) {
-      Alert.alert("Error", "Please enter your farm location.");
+    if (accountType === "farmer" && !municipality.trim()) {
+      Alert.alert("Error", "Please enter your municipality.");
       return;
     }
 
     try {
+      // Combine barangay and municipality for farm_location
+      const farmLocation = accountType === "farmer" 
+        ? (barangay.trim() ? `${barangay}, ${municipality}` : municipality)
+        : null;
+
       const requestBody = {
         first_name: firstName,        
         last_name: lastName,          
         email,
         password,
         contact_number: contactNumber, 
-        user_type_id: accountType === "farmer" ? 1 : 3,
-        farm_location: accountType === "farmer" ? farmLocation : null,
+        user_type_id: accountType === "farmer" ? 2 : 3,
+        farm_location: farmLocation,
       };
 
       console.log("Sending registration request:");
@@ -106,7 +107,6 @@ const LoginScreen: React.FC = () => {
       console.log("Response data:", data);
 
       if (!res.ok) {
-        // console.error("Registration failed:", data);
         Alert.alert("Registration failed", data.message || JSON.stringify(data));
         return;
       }
@@ -121,198 +121,229 @@ const LoginScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.page}>
-      <View style={styles.container}>
-        {/* Tabs */}
-        <View style={styles.tabRow}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "login" && styles.activeTab]}
-            onPress={() => setActiveTab("login")}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "login" && styles.activeTabText,
-              ]}
+    <KeyboardAvoidingView 
+      style={styles.page}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.container}>
+          {/* Tabs */}
+          <View style={styles.tabRow}>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === "login" && styles.activeTab]}
+              onPress={() => setActiveTab("login")}
             >
-              Login
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "register" && styles.activeTab]}
-            onPress={() => setActiveTab("register")}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "register" && styles.activeTabText,
-              ]}
-            >
-              Register
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.tabUnderline}>
-          <View
-            style={[styles.indicator, activeTab === "register" && { left: "50%" }]}
-          />
-        </View>
-
-        {/* LOGIN FORM */}
-        {activeTab === "login" && (
-          <>
-            <Text style={styles.title}>
-              Sign In ({accountType === "farmer" ? "Farmer" : "Student"})
-            </Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-            />
-
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={secure}
-              />
-              <TouchableOpacity
-                onPress={() => setSecure(!secure)}
-                style={styles.eyeButton}
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === "login" && styles.activeTabText,
+                ]}
               >
-                <Ionicons
-                  name={secure ? "eye-off-outline" : "eye-outline"}
-                  size={22}
-                  color="#444"
-                />
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity style={styles.primaryButton} onPress={handleLogin}>
-              <Text style={styles.buttonText}>Login</Text>
+                Login
+              </Text>
             </TouchableOpacity>
-
-            <View style={styles.options}>
-              <View style={styles.checkboxContainer}>
-                <Checkbox
-                  value={rememberMe}
-                  onValueChange={setRememberMe}
-                  color={rememberMe ? "#b63c3e" : undefined}
-                  style={styles.checkbox}
-                />
-                <Text style={styles.checkboxLabel}>Remember Me</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => Alert.alert("Forgot password pressed")}
+            <TouchableOpacity
+              style={[styles.tab, activeTab === "register" && styles.activeTab]}
+              onPress={() => setActiveTab("register")}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === "register" && styles.activeTabText,
+                ]}
               >
-                <Text style={styles.link}>Forgot password?</Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
-
-{/* REGISTER FORM */}
-        {activeTab === "register" && (
-          <>
-            <Text style={styles.title}>
-              Create Account ({accountType === "farmer" ? "Farmer" : "Student"})
-            </Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="First Name"
-              value={firstName}
-              onChangeText={setFirstName}
+                Register
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.tabUnderline}>
+            <View
+              style={[styles.indicator, activeTab === "register" && { left: "50%" }]}
             />
+          </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Last Name"
-              value={lastName}
-              onChangeText={setLastName}
-            />
+          {/* LOGIN FORM */}
+          {activeTab === "login" && (
+            <>
+              <Text style={styles.title}>
+                Sign In ({accountType === "farmer" ? "Farmer" : "Student"})
+              </Text>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Contact Number"
-              value={contactNumber}
-              onChangeText={setContactNumber}
-              keyboardType="phone-pad"
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={secure}
-              />
-              <TouchableOpacity
-                onPress={() => setSecure(!secure)}
-                style={styles.eyeButton}
-              >
-                <Ionicons
-                  name={secure ? "eye-off-outline" : "eye-outline"}
-                  size={22}
-                  color="#444"
-                />
-              </TouchableOpacity>
-            </View>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm Password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-            />
-
-            {/* Show Farm Location field only for Farmer */}
-            {accountType === "farmer" && (
               <TextInput
                 style={styles.input}
-                placeholder="Farm Location"
-                value={farmLocation}
-                onChangeText={setFarmLocation}
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
               />
-            )}
 
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={handleRegister}
-            >
-              <Text style={styles.buttonText}>Register</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-    </View>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                  placeholder="Password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={secure}
+                />
+                <TouchableOpacity
+                  onPress={() => setSecure(!secure)}
+                  style={styles.eyeButton}
+                >
+                  <Ionicons
+                    name={secure ? "eye-off-outline" : "eye-outline"}
+                    size={22}
+                    color="#444"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity style={styles.primaryButton} onPress={handleLogin}>
+                <Text style={styles.buttonText}>Login</Text>
+              </TouchableOpacity>
+
+              <View style={styles.options}>
+                <View style={styles.checkboxContainer}>
+                  <Checkbox
+                    value={rememberMe}
+                    onValueChange={setRememberMe}
+                    color={rememberMe ? "#b63c3e" : undefined}
+                    style={styles.checkbox}
+                  />
+                  <Text style={styles.checkboxLabel}>Remember Me</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("ForgotPassScreen" as never)}
+                >
+                  <Text style={styles.link}>Forgot password?</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+
+          {/* REGISTER FORM */}
+          {activeTab === "register" && (
+            <>
+              <Text style={styles.title}>
+                Create Account ({accountType === "farmer" ? "Farmer" : "Student"})
+              </Text>
+
+              <TextInput
+                style={styles.input}
+                placeholder="First Name"
+                value={firstName}
+                onChangeText={setFirstName}
+              />
+
+              <TextInput
+                style={styles.input}
+                placeholder="Last Name"
+                value={lastName}
+                onChangeText={setLastName}
+              />
+
+              <TextInput
+                style={styles.input}
+                placeholder="Contact Number"
+                value={contactNumber}
+                onChangeText={setContactNumber}
+                keyboardType="phone-pad"
+              />
+
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                  placeholder="Password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={secure}
+                />
+                <TouchableOpacity
+                  onPress={() => setSecure(!secure)}
+                  style={styles.eyeButton}
+                >
+                  <Ionicons
+                    name={secure ? "eye-off-outline" : "eye-outline"}
+                    size={22}
+                    color="#444"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                  placeholder="Confirm Password"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={secureConfirm}
+                />
+                <TouchableOpacity
+                  onPress={() => setSecureConfirm(!secureConfirm)}
+                  style={styles.eyeButton}
+                >
+                  <Ionicons
+                    name={secureConfirm ? "eye-off-outline" : "eye-outline"}
+                    size={22}
+                    color="#444"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Show Farm Location fields only for Farmer */}
+              {accountType === "farmer" && (
+                <>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Barangay (Optional)"
+                    value={barangay}
+                    onChangeText={setBarangay}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Municipality (Required)"
+                    value={municipality}
+                    onChangeText={setMunicipality}
+                  />
+                </>
+              )}
+
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={handleRegister}
+              >
+                <Text style={styles.buttonText}>Register</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 export default LoginScreen;
 
-// (styles unchanged — keep your original)
-
 const styles = StyleSheet.create({
   page: {
     flex: 1,
     backgroundColor: "#faf8f8",
+  },
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
@@ -423,6 +454,5 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     fontSize: 16,
-    
   },
 });

@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, StyleSheet, Animated, Easing, Text, Image } from "react-native";
+import { View, StyleSheet, Animated, Easing, Text } from "react-native";
 
 const LoadingScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
   const rotateAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current; // opacity animation
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const [rotationCount, setRotationCount] = useState(0);
   const [showText, setShowText] = useState(false);
 
@@ -11,26 +11,28 @@ const LoadingScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
     const spin = () => {
       Animated.timing(rotateAnim, {
         toValue: 1,
-        duration: 10000, // 1 sec per rotation
+        duration: 1000, // 1 second per rotation (was 10000)
         easing: Easing.linear,
         useNativeDriver: true,
       }).start(() => {
-        rotateAnim.setValue(0); // reset for next rotation
+        rotateAnim.setValue(0);
         setRotationCount((prev) => {
           const next = prev + 1;
           if (next === 5) {
+            // After 5 rotations (5 seconds), show text
             setShowText(true);
 
             // Fade in the text
             Animated.timing(fadeAnim, {
               toValue: 1,
-              duration: 15000, // fade-in duration
+              duration: 800, // fade-in duration (was 15000)
               useNativeDriver: true,
             }).start(() => {
-              setTimeout(() => onFinish(), 10000); // wait a bit then finish
+              // Wait 500ms after text appears, then finish
+              setTimeout(() => onFinish(), 500);
             });
           } else {
-            spin(); // continue spinning until 5th
+            spin(); // continue spinning
           }
           return next;
         });
@@ -55,7 +57,7 @@ const LoadingScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
     <View style={styles.container}>
       <View style={styles.row}>
         <Animated.Image
-          source={require("../assets/homepics/cacaopod.png")} // cacao pod image
+          source={require("../assets/homepics/cacaopod.png")}
           style={[styles.logo, spinStyle]}
         />
         {showText && (

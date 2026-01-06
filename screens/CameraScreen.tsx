@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import BottomNav from "./layout/BottomNav";
 import { useNavigation } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_ENDPOINTS } from '../config/api';
 
@@ -18,10 +18,11 @@ const CameraPage: React.FC = () => {
     try {
       // Create a directory for cacao images if it doesn't exist
       const directory = `${FileSystem.documentDirectory}cacao_images/`;
-      const dirInfo = await FileSystem.getInfoAsync(directory);
       
-      if (!dirInfo.exists) {
+      try {
         await FileSystem.makeDirectoryAsync(directory, { intermediates: true });
+      } catch (error) {
+        // Directory might already exist, ignore error
       }
 
       // Copy the image to the new location
@@ -60,9 +61,6 @@ const CameraPage: React.FC = () => {
       // Prepare form data for upload
       const formData = new FormData();
       
-      // Get file info
-      const fileInfo = await FileSystem.getInfoAsync(imageUri);
-      
       formData.append('image', {
         uri: imageUri,
         name: filename,
@@ -72,29 +70,54 @@ const CameraPage: React.FC = () => {
       formData.append('source', source);
 
       // Upload to your backend API for ML diagnosis
-      const response = await fetch(`${API_ENDPOINTS.PROFILE.replace('/api/user/profile', '')}/api/diagnosis/upload`, {
+      console.log("Uploading to:", API_ENDPOINTS.DIAGNOSIS_UPLOAD);
+      console.log("Token:", token.substring(0, 20) + "...");
+      
+      const response = await fetch(API_ENDPOINTS.DIAGNOSIS_UPLOAD, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
         },
         body: formData,
       });
 
-      const data = await response.json();
+      console.log("Response status:", response.status);
+      
+      const responseText = await response.text();
+      console.log("Raw response:", responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.log("Failed to parse JSON:", e);
+        throw new Error(`Server returned: ${responseText}`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to upload image');
+        throw new Error(data.message || data.error || `HTTP ${response.status}: Failed to upload image`);
       }
 
       // Navigate to results screen with diagnosis data
+      const pestInfo = data.pest_info ? {
+        name: data.pest_info.name,
+        scientific_name: data.pest_info.scientific_name || '',
+        description: data.pest_info.description || '',
+        damage: data.pest_info.damage || ''
+      } : null;
+
       navigation.navigate('DiagnosisResult' as never, {
         imageUri: savedPath,
-        diagnosis: data.diagnosis,
-        confidence: data.confidence,
-        diseaseName: data.disease_name,
-        recommendations: data.recommendations,
         diagnosisId: data.diagnosis_id,
+        diseaseId: data.disease_id,
+        diseaseName: data.disease_name,
+        diseaseType: data.disease_type,
+        affectedPart: data.affected_part,
+        confidence: data.confidence,
+        cause: data.cause || 'No information available',
+        pestInfo: pestInfo,
+        treatments: data.treatments || [],
+        message: data.disease_type === 'None' ? 'Your cacao plant appears to be healthy!' : undefined,
       } as never);
 
     } catch (error: any) {
@@ -114,7 +137,7 @@ const CameraPage: React.FC = () => {
     }
 
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],  // ← Fixed: Use array instead of deprecated MediaTypeOptions
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
@@ -134,7 +157,7 @@ const CameraPage: React.FC = () => {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],  // ← Fixed: Use array instead of deprecated MediaTypeOptions
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
@@ -202,7 +225,7 @@ const CameraPage: React.FC = () => {
         </View>
       </View>
 
-      {/* Floating AI Icon */}
+      {/* Floating AI Icon
       <TouchableOpacity
         style={styles.floatingAI}
         onPress={() => navigation.navigate("ChatBotScreen" as never)}
@@ -211,7 +234,7 @@ const CameraPage: React.FC = () => {
           style={styles.cacaoIcon}
           source={require("../assets/homepics/cacaoAI.png")}
         />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       {/* Bottom Navigation */}
       <BottomNav

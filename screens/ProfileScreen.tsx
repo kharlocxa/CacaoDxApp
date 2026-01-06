@@ -6,8 +6,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { API_ENDPOINTS } from '../config/api';
 
-// const API_URL = "http://192.168.137.1:5000/api/user/profile"; 
-
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation();
 
@@ -31,12 +29,7 @@ const ProfileScreen: React.FC = () => {
 
         console.log("Fetching profile from:", API_ENDPOINTS.PROFILE);
 
-        // const response = await fetch(API_URL, {
-        //   method: "GET",
-        //   headers: { Authorization: `Bearer ${token}` },
-        // });
-
-        const response = await fetch(API_ENDPOINTS.PROFILE, {  // ← Use it here
+        const response = await fetch(API_ENDPOINTS.PROFILE, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -62,45 +55,43 @@ const ProfileScreen: React.FC = () => {
     fetchProfile();
   }, []);
 
-  // Handle logout
+  const handleLogout = async () => {
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem("token");
+              const headers = { Authorization: `Bearer ${token}` };
+              const response = await fetch(API_ENDPOINTS.LOGOUT, {
+                method: "POST",
+                headers,
+              });
 
-const handleLogout = async () => {
-  Alert.alert(
-    "Logout",
-    "Are you sure you want to logout?",
-    [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const token = await AsyncStorage.getItem("token");
-            const headers = { Authorization: `Bearer ${token}` };
-            const response = await fetch(API_ENDPOINTS.LOGOUT, {
-              method: "POST",
-              headers,
-            });
+              if (!response.ok) {
+                console.warn("Logout failed:", await response.text());
+              }
 
-            if (!response.ok) {
-              console.warn("Logout failed:", await response.text());
+              await AsyncStorage.multiRemove(["token", "userToken", "user"]);
+
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Login" as never }],
+              });
+            } catch (error) {
+              console.error("Logout error:", error);
+              Alert.alert("Network Error", "Unable to reach the server. Check your internet or API URL.");
             }
-
-            await AsyncStorage.multiRemove(["token", "userToken", "user"]);
-
-            navigation.reset({
-              index: 0,
-              routes: [{ name: "Login" as never }],
-            });
-          } catch (error) {
-            console.error("Logout error:", error);
-            Alert.alert("Network Error", "Unable to reach the server. Check your internet or API URL.");
-          }
+          },
         },
-      },
-    ]
-  );
-};
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -119,9 +110,11 @@ const handleLogout = async () => {
             {/* Profile Info */}
             <View style={styles.profileInfo}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {user?.first_name?.[0]}{user?.last_name?.[0]}
-                </Text>
+                <Image
+                  source={require("../assets/homepics/cacaopod.png")}
+                  style={styles.avatarImage}
+                  resizeMode="cover"
+                />
               </View>
               <Text style={styles.name}>
                 {user?.first_name && user?.last_name 
@@ -136,9 +129,12 @@ const handleLogout = async () => {
 
             {/* Options */}
             <View style={styles.options}>
-              <TouchableOpacity style={styles.option}>
+              <TouchableOpacity 
+                style={styles.option}
+                onPress={() => navigation.navigate("AccountSecurityScreen" as never)}
+              >
                 <Text style={styles.optionText}>Account Security</Text>
-                <Text style={styles.subText}>Excellent</Text>
+                <Text style={styles.subText}>Change your password</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.option}>
@@ -214,10 +210,17 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    marginBottom: 10,
-    backgroundColor: "#018241",
+    borderWidth: 3,
+    borderColor: "#000000ff",
+    overflow: "hidden",
+    backgroundColor: "#2e2e2e",
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 12,
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
   },
   avatarText: {
     fontSize: 40,
@@ -260,7 +263,7 @@ const styles = StyleSheet.create({
   },
   subText: {
     fontSize: 12,
-    color: "#4CAF50",
+    color: "#999",
     marginTop: 5,
   },
   logout: {

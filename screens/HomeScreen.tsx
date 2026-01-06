@@ -5,11 +5,16 @@ import BottomNav from "./layout/BottomNav";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { ImageBackground } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
+
 
 import { API_ENDPOINTS } from '../config/api';  // ← Add this import
 
+
 const Homepage: React.FC = () => {
   const navigation = useNavigation();
+  const [locationText, setLocationText] = useState("Fetching location...");
   const [stats, setStats] = useState({ 
     total_users: 0, 
     total_diagnoses: 0, 
@@ -17,11 +22,56 @@ const Homepage: React.FC = () => {
   });
 
   useEffect(() => {
-    fetch(API_ENDPOINTS.STATS)  // ← Changed from hardcoded URL
-      .then((res) => res.json())
-      .then((data) => setStats(data))
-      .catch((err) => console.error(err));
+    const fetchStats = async () => {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        
+        const response = await fetch(API_ENDPOINTS.STATS, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          }
+        });
+        
+        const data = await response.json();
+        setStats(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    
+    fetchStats();
   }, []);
+
+  useEffect(() => {
+  (async () => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+
+    if (status !== "granted") {
+      setLocationText("Location permission denied");
+      return;
+    }
+
+    const location = await Location.getCurrentPositionAsync({});
+    const address = await Location.reverseGeocodeAsync({
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+    });
+
+    if (address.length > 0) {
+      const place = address[0];
+      const city =
+        place.city ||
+        place.subregion ||
+        place.district ||
+        "Unknown City";
+
+      const region = place.region || "Unknown Region";
+
+      setLocationText(`${city}, ${region}`);
+    }
+  })();
+}, []);
+
 
   return (
     <SafeAreaView style={styles.page}>
@@ -32,7 +82,7 @@ const Homepage: React.FC = () => {
             <Text style={styles.smallText}>Current Location</Text>
             <View style={styles.locationRow}>
               <Ionicons name="location-sharp" size={18} color="#b63c3e" />
-              <Text style={styles.locationText}>Dumaguete, Negros Oriental</Text>
+              <Text style={styles.locationText}>{locationText}</Text>
               <Ionicons name="chevron-down" size={16} color="#333" />
             </View>
           </View>
@@ -112,7 +162,7 @@ const Homepage: React.FC = () => {
         </TouchableOpacity>
 
 
-        {/* Cacao Icon */}
+        {/* Cacao Icon
        <TouchableOpacity
           style={{ position: "absolute", bottom: 10, right: 10, zIndex: 10 }}
           onPress={() => navigation.navigate("ChatBotScreen" as never)}
@@ -121,7 +171,7 @@ const Homepage: React.FC = () => {
             style={styles.cacaoIcon}
             source={require("../assets/homepics/cacaoAI.png")}
           />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
       </View>
 

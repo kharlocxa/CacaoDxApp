@@ -4,13 +4,33 @@ import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRoute, useNavigation } from "@react-navigation/native";
 
+interface Treatment {
+  id: number;
+  description: string;
+  treatment: string;
+  prevention: string;
+  recommended_action: string;
+}
+
+interface PestInfo {
+  name: string;
+  scientific_name: string;
+  description: string;
+  damage: string;
+}
+
 interface RouteParams {
   imageUri: string;
-  diagnosis: string;
-  confidence: number;
-  diseaseName: string;
-  recommendations: string[];
   diagnosisId: number;
+  diseaseId: number;
+  diseaseName: string;
+  diseaseType: string;
+  affectedPart: string;
+  confidence: number;
+  cause: string;
+  pestInfo: PestInfo | null;
+  treatments: Treatment[];
+  message?: string;
 }
 
 const DiagnosisResult: React.FC = () => {
@@ -22,6 +42,36 @@ const DiagnosisResult: React.FC = () => {
     if (confidence >= 80) return "#4CAF50";
     if (confidence >= 60) return "#FF9800";
     return "#F44336";
+  };
+
+  const getDiseaseTypeIcon = (type: string) => {
+    switch (type?.toLowerCase()) {
+      case 'fungal':
+        return 'leaf-outline';
+      case 'insect-related':
+        return 'bug-outline';
+      case 'virus':
+        return 'warning-outline';
+      case 'none':
+        return 'checkmark-circle-outline';
+      default:
+        return 'help-circle-outline';
+    }
+  };
+
+  const getDiseaseTypeColor = (type: string) => {
+    switch (type?.toLowerCase()) {
+      case 'fungal':
+        return '#8B4513';
+      case 'insect-related':
+        return '#FF6B6B';
+      case 'virus':
+        return '#9B59B6';
+      case 'none':
+        return '#4CAF50';
+      default:
+        return '#666';
+    }
   };
 
   return (
@@ -46,6 +96,24 @@ const DiagnosisResult: React.FC = () => {
           <View style={styles.diseaseHeader}>
             <Ionicons name="medical" size={24} color="#b63c3e" />
             <Text style={styles.diseaseName}>{params.diseaseName}</Text>
+          </View>
+
+          {/* Disease Type Badge */}
+          <View style={styles.badgeContainer}>
+            <View style={[styles.badge, { backgroundColor: getDiseaseTypeColor(params.diseaseType) + '20' }]}>
+              <Ionicons 
+                name={getDiseaseTypeIcon(params.diseaseType)} 
+                size={16} 
+                color={getDiseaseTypeColor(params.diseaseType)} 
+              />
+              <Text style={[styles.badgeText, { color: getDiseaseTypeColor(params.diseaseType) }]}>
+                {params.diseaseType}
+              </Text>
+            </View>
+            <View style={styles.badge}>
+              <Ionicons name="leaf-outline" size={16} color="#2E7D32" />
+              <Text style={styles.badgeText}>{params.affectedPart}</Text>
+            </View>
           </View>
           
           {/* Confidence Score */}
@@ -73,28 +141,109 @@ const DiagnosisResult: React.FC = () => {
           </View>
         </View>
 
-        {/* Diagnosis Description */}
+        {/* Special Message for Healthy/Unknown */}
+        {params.message && (
+          <View style={[
+            styles.messageBox,
+            { backgroundColor: params.diseaseType === 'None' ? '#d4edda' : '#fff3cd' }
+          ]}>
+            <Ionicons 
+              name={params.diseaseType === 'None' ? 'checkmark-circle' : 'information-circle'} 
+              size={24} 
+              color={params.diseaseType === 'None' ? '#155724' : '#856404'} 
+            />
+            <Text style={[
+              styles.messageText,
+              { color: params.diseaseType === 'None' ? '#155724' : '#856404' }
+            ]}>
+              {params.message}
+            </Text>
+          </View>
+        )}
+
+        {/* Cause/Description */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Diagnosis</Text>
-          <Text style={styles.diagnosisText}>{params.diagnosis}</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="information-circle" size={20} color="#b63c3e" />
+            <Text style={styles.sectionTitle}>About This Condition</Text>
+          </View>
+          <Text style={styles.descriptionText}>{params.cause}</Text>
         </View>
 
-        {/* Recommendations */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recommendations</Text>
-          {params.recommendations.map((recommendation, index) => (
-            <View key={index} style={styles.recommendationItem}>
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-              <Text style={styles.recommendationText}>{recommendation}</Text>
+        {/* Pest Information (if available) */}
+        {params.pestInfo && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="bug" size={20} color="#FF6B6B" />
+              <Text style={styles.sectionTitle}>Pest Information</Text>
             </View>
-          ))}
-        </View>
+            <View style={styles.pestCard}>
+              <Text style={styles.pestName}>{params.pestInfo.name}</Text>
+              <Text style={styles.pestScientific}>({params.pestInfo.scientific_name})</Text>
+              <Text style={styles.pestDescription}>{params.pestInfo.description}</Text>
+              <View style={styles.damageContainer}>
+                <Ionicons name="warning" size={16} color="#FF6B6B" />
+                <Text style={styles.damageText}>{params.pestInfo.damage}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Treatments */}
+        {params.treatments && params.treatments.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="medical-outline" size={20} color="#4CAF50" />
+              <Text style={styles.sectionTitle}>Treatment & Management</Text>
+            </View>
+            {params.treatments.map((treatment, index) => (
+              <View key={index} style={styles.treatmentCard}>
+                {treatment.description && (
+                  <View style={styles.treatmentItem}>
+                    <Text style={styles.treatmentLabel}>Description:</Text>
+                    <Text style={styles.treatmentText}>{treatment.description}</Text>
+                  </View>
+                )}
+                
+                {treatment.treatment && (
+                  <View style={styles.treatmentItem}>
+                    <View style={styles.iconLabel}>
+                      <Ionicons name="fitness" size={18} color="#2196F3" />
+                      <Text style={styles.treatmentLabel}>Treatment:</Text>
+                    </View>
+                    <Text style={styles.treatmentText}>{treatment.treatment}</Text>
+                  </View>
+                )}
+
+                {treatment.prevention && (
+                  <View style={styles.treatmentItem}>
+                    <View style={styles.iconLabel}>
+                      <Ionicons name="shield-checkmark" size={18} color="#4CAF50" />
+                      <Text style={styles.treatmentLabel}>Prevention:</Text>
+                    </View>
+                    <Text style={styles.treatmentText}>{treatment.prevention}</Text>
+                  </View>
+                )}
+
+                {treatment.recommended_action && (
+                  <View style={styles.treatmentItem}>
+                    <View style={styles.iconLabel}>
+                      <Ionicons name="flash" size={18} color="#FF9800" />
+                      <Text style={styles.treatmentLabel}>Action Required:</Text>
+                    </View>
+                    <Text style={styles.treatmentText}>{treatment.recommended_action}</Text>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
             style={styles.primaryButton}
-            onPress={() => navigation.navigate("History" as never)}
+            onPress={() => navigation.navigate("DiagnosticHistory" as never)}
           >
             <Ionicons name="time-outline" size={20} color="#fff" />
             <Text style={styles.primaryButtonText}>View History</Text>
@@ -102,7 +251,7 @@ const DiagnosisResult: React.FC = () => {
 
           <TouchableOpacity 
             style={styles.secondaryButton}
-            onPress={() => navigation.navigate("Camera" as never)}
+            onPress={() => navigation.navigate("CameraScreen" as never)}
           >
             <Ionicons name="camera-outline" size={20} color="#b63c3e" />
             <Text style={styles.secondaryButtonText}>New Scan</Text>
@@ -171,7 +320,7 @@ const styles = StyleSheet.create({
   diseaseHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   diseaseName: {
     fontSize: 24,
@@ -179,6 +328,25 @@ const styles = StyleSheet.create({
     color: "#000",
     marginLeft: 12,
     flex: 1,
+  },
+  badgeContainer: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 16,
+  },
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
+  },
+  badgeText: {
+    fontSize: 13,
+    color: "#666",
+    fontWeight: "500",
   },
   confidenceContainer: {
     marginTop: 8,
@@ -204,29 +372,103 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "right",
   },
+  messageBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    marginHorizontal: 16,
+    padding: 16,
+    borderRadius: 12,
+    gap: 12,
+  },
+  messageText: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: "500",
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    gap: 8,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
     color: "#000",
-    marginBottom: 12,
   },
-  diagnosisText: {
+  descriptionText: {
     fontSize: 15,
     color: "#333",
-    lineHeight: 22,
+    lineHeight: 24,
   },
-  recommendationItem: {
+  pestCard: {
+    backgroundColor: "#FFF5F5",
+    padding: 16,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: "#FF6B6B",
+  },
+  pestName: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#000",
+    marginBottom: 4,
+  },
+  pestScientific: {
+    fontSize: 14,
+    fontStyle: "italic",
+    color: "#666",
+    marginBottom: 8,
+  },
+  pestDescription: {
+    fontSize: 14,
+    color: "#333",
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  damageContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 12,
-    paddingLeft: 8,
+    gap: 8,
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 8,
   },
-  recommendationText: {
-    fontSize: 15,
-    color: "#333",
-    marginLeft: 12,
+  damageText: {
     flex: 1,
+    fontSize: 14,
+    color: "#d32f2f",
+    fontWeight: "500",
+  },
+  treatmentCard: {
+    backgroundColor: "#f9f9f9",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  treatmentItem: {
+    marginBottom: 12,
+  },
+  iconLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
+  treatmentLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#000",
+  },
+  treatmentText: {
+    fontSize: 14,
+    color: "#333",
     lineHeight: 22,
+    marginTop: 4,
   },
   buttonContainer: {
     flexDirection: "row",

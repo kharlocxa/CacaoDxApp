@@ -16,11 +16,15 @@ import ChatBot from "./screens/ChatBotScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import DiagnosticHistory from "./screens/DiagnoseScreen"; 
 import FeedbackScreen from "./screens/FeedBack";
+import DiagnosisResult from "./screens/DiagnosticResult";
+import ForgetPassScreen from "./screens/ForgetPassScreen";
+import AccountSecurityScreen from "./screens/AccountSecurityScreen";
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
-  const [isLoading, setIsLoading] = useState(true);
+  const [showSplash, setShowSplash] = useState(true); // For animation
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true); // For token check
   const [userToken, setUserToken] = useState<string | null>(null);
 
   // Check for saved token on startup
@@ -37,16 +41,16 @@ export default function App() {
       } catch (err) {
         console.error("Error checking token:", err);
       } finally {
-        setIsLoading(false); // stop loading after check
+        setIsCheckingAuth(false); // Auth check complete
       }
     };
 
     checkToken();
   }, []);
 
-  // Show loading screen first
-  if (isLoading) {
-    return <LoadingScreen onFinish={() => setIsLoading(false)} />;
+  // Show loading screen until both splash animation AND auth check are done
+  if (showSplash || isCheckingAuth) {
+    return <LoadingScreen onFinish={() => setShowSplash(false)} />;
   }
 
   return (
@@ -57,7 +61,7 @@ export default function App() {
           headerShown: false,
           animation: "fade",
           animationDuration: 150,
-          gestureEnabled: true, // Default is true for other screens
+          gestureEnabled: true,
         }}
       >
         {/* Disable swipe back on auth screens */}
@@ -70,8 +74,15 @@ export default function App() {
           name="Login"
           component={LoginScreen}
           initialParams={{ accountType: "student" }}
+          options={{ gestureEnabled: true, animation: "slide_from_right" }}
+        />
+
+        <Stack.Screen
+          name="ForgotPassScreen"
+          component={ForgetPassScreen}
           options={{ gestureEnabled: true }}
         />
+
         
         {/* Disable swipe back on HomeScreen (main app entry) */}
         <Stack.Screen 
@@ -82,9 +93,11 @@ export default function App() {
         
         {/* These screens can have swipe back enabled */}
         <Stack.Screen name="DiagnosticHistory" component={DiagnosticHistory} />
+        <Stack.Screen name="DiagnosisResult" component={DiagnosisResult} />
         <Stack.Screen name="CameraScreen" component={CameraScreen} />
         <Stack.Screen name="RemindersScreen" component={RemindersScreen} />
         <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+        <Stack.Screen name="AccountSecurityScreen" component={AccountSecurityScreen} />
         <Stack.Screen name="PestClassification" component={PestClassification} />
         <Stack.Screen name="PestDetails" component={PestDetails} />
         <Stack.Screen name="ChatBotScreen" component={ChatBot} />
