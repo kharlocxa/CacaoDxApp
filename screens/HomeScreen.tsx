@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet,  } from "react-native";
+import { View, Text, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import BottomNav from "./layout/BottomNav";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -8,13 +8,12 @@ import { ImageBackground } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 
-
-import { API_ENDPOINTS } from '../config/api';  // ← Add this import
-
+import { API_ENDPOINTS } from '../config/api';
 
 const Homepage: React.FC = () => {
   const navigation = useNavigation();
-  const [locationText, setLocationText] = useState("Fetching location...");
+  const [locationText, setLocationText] = useState("Detecting location...");
+  const [locationLoading, setLocationLoading] = useState(true);
   const [stats, setStats] = useState({ 
     total_users: 0, 
     total_diagnoses: 0, 
@@ -35,7 +34,7 @@ const Homepage: React.FC = () => {
         const data = await response.json();
         setStats(data);
       } catch (err) {
-        console.error(err);
+        console.error('Failed to fetch stats:', err);
       }
     };
     
@@ -43,52 +42,146 @@ const Homepage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-  (async () => {
-    let { status } = await Location.requestForegroundPermissionsAsync();
+    const getLocation = async () => {
+      try {
+        // Check if we have cached location (less than 1 hour old)
+        const cachedLocation = await AsyncStorage.getItem("cachedLocation");
+        const cachedTime = await AsyncStorage.getItem("cachedLocationTime");
+        
+        if (cachedLocation && cachedTime) {
+          const timeDiff = Date.now() - parseInt(cachedTime);
+          const oneHour = 60 * 60 * 1000;
+          
+          if (timeDiff < oneHour) {
+            setLocationText(cachedLocation);
+            setLocationLoading(false);
+            return;
+          }
+        }
 
-    if (status !== "granted") {
-      setLocationText("Location permission denied");
-      return;
+        // Request permission
+        let { status } = await Location.requestForegroundPermissionsAsync();
+
+        if (status !== "granted") {
+          setLocationText("Location access denied");
+          setLocationLoading(false);
+          return;
+        }
+
+        // Get current location with timeout
+        const locationPromise = Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Location timeout')), 10000)
+        );
+
+        const location = await Promise.race([locationPromise, timeoutPromise]) as Location.LocationObject;
+
+        // Reverse geocode
+        const address = await Location.reverseGeocodeAsync({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+
+        if (address.length > 0) {
+          const place = address[0];
+          const city = place.city || place.subregion || place.district || "Unknown City";
+          const region = place.region || "Unknown Region";
+          const locationString = `${city}, ${region}`;
+
+          setLocationText(locationString);
+          
+          // Cache the location
+          await AsyncStorage.setItem("cachedLocation", locationString);
+          await AsyncStorage.setItem("cachedLocationTime", Date.now().toString());
+        } else {
+          setLocationText("Location unavailable");
+        }
+      } catch (error) {
+        console.error("Location error:", error);
+        setLocationText("Location unavailable");
+      } finally {
+        setLocationLoading(false);
+      }
+    };
+
+    getLocation();
+  }, []);
+
+  const refreshLocation = async () => {
+    setLocationLoading(true);
+    setLocationText("Detecting location...");
+    
+    // Clear cache to force refresh
+    await AsyncStorage.removeItem("cachedLocation");
+    await AsyncStorage.removeItem("cachedLocationTime");
+    
+    // Trigger location fetch by re-mounting the effect
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        setLocationText("Location access denied");
+        setLocationLoading(false);
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const address = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (address.length > 0) {
+        const place = address[0];
+        const city = place.city || place.subregion || place.district || "Unknown City";
+        const region = place.region || "Unknown Region";
+        const locationString = `${city}, ${region}`;
+
+        setLocationText(locationString);
+        await AsyncStorage.setItem("cachedLocation", locationString);
+        await AsyncStorage.setItem("cachedLocationTime", Date.now().toString());
+      } else {
+        setLocationText("Location unavailable");
+      }
+    } catch (error) {
+      console.error("Location refresh error:", error);
+      setLocationText("Location unavailable");
+    } finally {
+      setLocationLoading(false);
     }
-
-    const location = await Location.getCurrentPositionAsync({});
-    const address = await Location.reverseGeocodeAsync({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-    });
-
-    if (address.length > 0) {
-      const place = address[0];
-      const city =
-        place.city ||
-        place.subregion ||
-        place.district ||
-        "Unknown City";
-
-      const region = place.region || "Unknown Region";
-
-      setLocationText(`${city}, ${region}`);
-    }
-  })();
-}, []);
-
+  };
 
   return (
     <SafeAreaView style={styles.page}>
       <View style={styles.container}>
         {/* Top Bar */}
         <View style={styles.topBar}>
-          <View>
+          <View style={styles.locationContainer}>
             <Text style={styles.smallText}>Current Location</Text>
-            <View style={styles.locationRow}>
+            <TouchableOpacity 
+              style={styles.locationRow}
+              onPress={refreshLocation}
+              disabled={locationLoading}
+            >
               <Ionicons name="location-sharp" size={18} color="#b63c3e" />
-              <Text style={styles.locationText}>{locationText}</Text>
-              <Ionicons name="chevron-down" size={16} color="#333" />
-            </View>
+              {locationLoading ? (
+                <ActivityIndicator size="small" color="#b63c3e" style={styles.locationLoader} />
+              ) : (
+                <>
+                  <Text style={styles.locationText} numberOfLines={1}>
+                    {locationText}
+                  </Text>
+                  <Ionicons name="refresh" size={14} color="#666" style={styles.refreshIcon} />
+                </>
+              )}
+            </TouchableOpacity>
           </View>
-          {/* <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="notifications-outline" size={20} color="#333" />
-          </TouchableOpacity> */}
         </View>
 
         {/* Stats Row */}
@@ -108,21 +201,20 @@ const Homepage: React.FC = () => {
         </View>
 
         {/* Section Title */}
-        <Text style={styles.sectionTitle}>All Features</Text>
-
+        <Text style={styles.sectionTitle}>Features</Text>
 
         {/* Feature Cards */}
-        <TouchableOpacity onPress={() => navigation.navigate("PestClassification" as never)}>
+        <TouchableOpacity onPress={() => navigation.navigate("DiseaseClassification" as never)}>
           <ImageBackground
             source={require("../assets/homepics/pest.png")}
             style={styles.card}
             imageStyle={styles.cardImageBackground}
           >
-            {/* <View style={styles.overlay} /> */}
+            <View style={styles.overlay} />
             <View style={styles.cardContent}>
-              <Ionicons name="bug-outline" size={20} color="#fff" style={styles.cardIcon} />
-              <Text style={styles.cardTitle}>Pest Diseases</Text>
-              <Text style={styles.cardDesc}>Identify and learn about major pests</Text>
+              <Ionicons name="bug-outline" size={24} color="#fff" style={styles.cardIcon} />
+              <Text style={styles.cardTitle}>Major Diseases</Text>
+              <Text style={styles.cardDesc}>Identify and learn about major diseases</Text>
             </View>
           </ImageBackground>
         </TouchableOpacity>
@@ -133,9 +225,9 @@ const Homepage: React.FC = () => {
             style={styles.card}
             imageStyle={styles.cardImageBackground}
           >
-            {/* <View style={styles.overlay} /> */}
+            <View style={styles.overlay} />
             <View style={styles.cardContent}>
-              <Ionicons name="medkit-outline" size={20} color="#fff" style={styles.cardIcon} />
+              <Ionicons name="medkit-outline" size={24} color="#fff" style={styles.cardIcon} />
               <Text style={styles.cardTitle}>Diagnose</Text>
               <Text style={styles.cardDesc}>
                 Quickly detect cacao plant issues and discover solutions.
@@ -150,9 +242,9 @@ const Homepage: React.FC = () => {
             style={styles.card}
             imageStyle={styles.cardImageBackground}
           >
-            {/* <View style={styles.overlay} /> */}
+            <View style={styles.overlay} />
             <View style={styles.cardContent}>
-              <Ionicons name="notifications-outline" size={20} color="#fff" style={styles.cardIcon} />
+              <Ionicons name="alarm-outline" size={24} color="#fff" style={styles.cardIcon} />
               <Text style={styles.cardTitle}>Reminders</Text>
               <Text style={styles.cardDesc}>
                 Keep your cacao plant healthy with smart reminders.
@@ -160,19 +252,6 @@ const Homepage: React.FC = () => {
             </View>
           </ImageBackground>
         </TouchableOpacity>
-
-
-        {/* Cacao Icon
-       <TouchableOpacity
-          style={{ position: "absolute", bottom: 10, right: 10, zIndex: 10 }}
-          onPress={() => navigation.navigate("ChatBotScreen" as never)}
-        >
-          <Image
-            style={styles.cacaoIcon}
-            source={require("../assets/homepics/cacaoAI.png")}
-          />
-        </TouchableOpacity> */}
-
       </View>
 
       {/* Bottom Navigation */}
@@ -194,15 +273,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 20, // Add extra top padding for notch safety
-    paddingBottom: 100, // space above nav
+    paddingTop: 20,
+    paddingBottom: 100,
   },
-  // Top bar
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
+  },
+  locationContainer: {
+    flex: 1,
   },
   smallText: {
     paddingLeft: 4,
@@ -213,13 +294,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginTop: 4, //Move location text slightly lower
+    marginTop: 4,
   },
   locationText: {
     fontSize: 14,
     fontWeight: "500",
     color: "#000",
     marginHorizontal: 4,
+    flex: 1,
+  },
+  locationLoader: {
+    marginLeft: 8,
+  },
+  refreshIcon: {
+    marginLeft: 4,
   },
   iconButton: {
     padding: 8,
@@ -227,7 +315,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ccc",
   },
-  // Search
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -242,7 +329,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     color: "#888",
   },
-  // Cards
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -250,6 +336,12 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 10,
     marginBottom: 16,
+    overflow: "hidden",
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    borderRadius: 10,
   },
   cardImage: {
     width: 60,
@@ -257,25 +349,36 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#fff",
     marginBottom: 4,
+    textShadowColor: "rgba(0, 0, 0, 0.75)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   }, 
   cardImageBackground: {
     borderRadius: 10,
   },
   cardContent: {
     padding: 16,
+    zIndex: 1,
   },
   cardDesc: {
-    fontSize: 13,
-    color: "#f0f0f0",
+    fontSize: 14,
+    color: "#fff",
     flexShrink: 1,
     marginTop: 2,
+    lineHeight: 20,
+    textShadowColor: "rgba(0, 0, 0, 0.75)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   cardIcon: {
-    marginBottom: 6,
+    marginBottom: 8,
+    textShadowColor: "rgba(0, 0, 0, 0.75)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   sectionTitle: {
     fontSize: 20,
@@ -286,13 +389,12 @@ const styles = StyleSheet.create({
   cacaoIcon: {
     width: 60,
     height: 60,
-    position: "absolute", // makes it independent of other layout
-    bottom: 30,           // adjust this so it sits just above your BottomNav
-    right: 2,            // move it to the right side
+    position: "absolute",
+    bottom: 30,
+    right: 2,
     resizeMode: "contain",
-    zIndex: 10,           // keep it above other elements
+    zIndex: 10,
   },
-   //Stats
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-between",

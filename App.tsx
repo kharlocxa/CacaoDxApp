@@ -19,6 +19,9 @@ import FeedbackScreen from "./screens/FeedBack";
 import DiagnosisResult from "./screens/DiagnosticResult";
 import ForgetPassScreen from "./screens/ForgetPassScreen";
 import AccountSecurityScreen from "./screens/AccountSecurityScreen";
+import DiseaseClassification from "./screens/DiseaseClassification";
+import DiseaseDetails from "./screens/DiseaseDetails";
+import UserFeedbackScreen from "./screens/UserFeedbackScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -103,6 +106,9 @@ export default function App() {
         <Stack.Screen name="ChatBotScreen" component={ChatBot} />
         <Stack.Screen name="SettingsScreen" component={SettingsScreen} />
         <Stack.Screen name="FeedbackScreen" component={FeedbackScreen} />
+        <Stack.Screen name="DiseaseClassification" component={DiseaseClassification} />
+        <Stack.Screen name="DiseaseDetails" component={DiseaseDetails} />
+        <Stack.Screen name="UserFeedbackScreen" component={UserFeedbackScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

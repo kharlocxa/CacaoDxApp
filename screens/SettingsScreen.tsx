@@ -14,10 +14,9 @@ const SettingsScreen: React.FC = ({ navigation }: any) => {
 
   // Modal states
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<"name" | "email" | "contact" | "password">("name");
+  const [modalType, setModalType] = useState<"name" | "email" | "contact">("name");
   const [modalValue, setModalValue] = useState("");
   const [modalValue2, setModalValue2] = useState(""); // For first/last name
-  const [secure, setSecure] = useState(true);
 
   // Load current profile info
   useEffect(() => {
@@ -51,7 +50,7 @@ const SettingsScreen: React.FC = ({ navigation }: any) => {
   }, []);
 
   // Open edit modal
-  const openModal = (type: "name" | "email" | "contact" | "password") => {
+  const openModal = (type: "name" | "email" | "contact") => {
     setModalType(type);
     if (type === "name") {
       setModalValue(firstName);
@@ -60,22 +59,53 @@ const SettingsScreen: React.FC = ({ navigation }: any) => {
       setModalValue(email);
     } else if (type === "contact") {
       setModalValue(contactNumber);
-    } else {
-      setModalValue("");
     }
     setShowModal(true);
-    setSecure(true);
   };
 
   // Handle Save from modal
   const handleModalSave = async () => {
-    if (modalType === "name" && (!modalValue || !modalValue2)) {
-      Alert.alert("Error", "Both first and last name are required.");
-      return;
+    // Validate Name
+    if (modalType === "name") {
+      const trimmedFirstName = modalValue.trim();
+      const trimmedLastName = modalValue2.trim();
+      
+      if (!trimmedFirstName || !trimmedLastName) {
+        Alert.alert("Error", "Both first and last name are required and cannot be empty or contain only spaces.");
+        return;
+      }
+      
+      // Update the values to trimmed versions
+      setModalValue(trimmedFirstName);
+      setModalValue2(trimmedLastName);
     }
-    if ((modalType === "email" || modalType === "contact") && !modalValue) {
-      Alert.alert("Error", "This field is required.");
-      return;
+    
+    // Validate Email
+    if (modalType === "email") {
+      const trimmedEmail = modalValue.trim();
+      if (!trimmedEmail) {
+        Alert.alert("Error", "Email is required and cannot be empty or contain only spaces.");
+        return;
+      }
+      
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmedEmail)) {
+        Alert.alert("Error", "Please enter a valid email address.");
+        return;
+      }
+      
+      setModalValue(trimmedEmail);
+    }
+    
+    // Validate Contact Number
+    if (modalType === "contact") {
+      const trimmedContact = modalValue.trim();
+      if (!trimmedContact) {
+        Alert.alert("Error", "Contact number is required and cannot be empty or contain only spaces.");
+        return;
+      }
+      setModalValue(trimmedContact);
     }
 
     setLoading(true);
@@ -89,18 +119,12 @@ const SettingsScreen: React.FC = ({ navigation }: any) => {
       const updateData: any = {};
       
       if (modalType === "name") {
-        updateData.first_name = modalValue;
-        updateData.last_name = modalValue2;
+        updateData.first_name = modalValue.trim();
+        updateData.last_name = modalValue2.trim();
       } else if (modalType === "email") {
-        updateData.email = modalValue;
+        updateData.email = modalValue.trim();
       } else if (modalType === "contact") {
-        updateData.contact_number = modalValue;
-      } else if (modalType === "password") {
-        if (!modalValue) {
-          Alert.alert("Error", "Password cannot be empty.");
-          return;
-        }
-        updateData.password = modalValue;
+        updateData.contact_number = modalValue.trim();
       }
 
       const response = await fetch(API_ENDPOINTS.UPDATE_PROFILE, {
@@ -118,14 +142,14 @@ const SettingsScreen: React.FC = ({ navigation }: any) => {
         throw new Error(data.message || "Failed to update");
       }
 
-      // Update local state
+      // Update local state with trimmed values
       if (modalType === "name") {
-        setFirstName(modalValue);
-        setLastName(modalValue2);
+        setFirstName(modalValue.trim());
+        setLastName(modalValue2.trim());
       } else if (modalType === "email") {
-        setEmail(modalValue);
+        setEmail(modalValue.trim());
       } else if (modalType === "contact") {
-        setContactNumber(modalValue);
+        setContactNumber(modalValue.trim());
       }
 
       Alert.alert("Success", "Updated successfully.");
@@ -218,14 +242,22 @@ const SettingsScreen: React.FC = ({ navigation }: any) => {
             </View>
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
+        </View>
 
-          {/* Password */}
-          <TouchableOpacity style={styles.settingItem} onPress={() => openModal("password")}>
+        {/* Security Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Security</Text>
+
+          {/* Account Security - Navigate to AccountSecurityScreen */}
+          <TouchableOpacity 
+            style={styles.settingItem} 
+            onPress={() => navigation.navigate("AccountSecurityScreen" as never)}
+          >
             <View style={styles.settingLeft}>
               <Ionicons name="lock-closed-outline" size={22} color="#666" />
               <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Password</Text>
-                <Text style={styles.settingValue}>••••••••</Text>
+                <Text style={styles.settingLabel}>Account Security</Text>
+                <Text style={styles.settingValue}>Change password and security settings</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
@@ -233,79 +265,108 @@ const SettingsScreen: React.FC = ({ navigation }: any) => {
         </View>
       </ScrollView>
 
-      {/* Edit Modal */}
+      {/* Edit Modal - Slides from bottom */}
       <Modal
         visible={showModal}
         transparent
         animationType="slide"
         onRequestClose={() => setShowModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              Edit {modalType === "name" ? "Name" : modalType === "email" ? "Email" : modalType === "contact" ? "Contact Number" : "Password"}
-            </Text>
-
-            {modalType === "name" ? (
-              <>
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="First Name"
-                  value={modalValue}
-                  onChangeText={setModalValue}
-                />
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Last Name"
-                  value={modalValue2}
-                  onChangeText={setModalValue2}
-                />
-              </>
-            ) : modalType === "password" ? (
-              <View style={styles.passwordContainer}>
-                <TextInput
-                  style={[styles.modalInput, styles.passwordInput]}
-                  placeholder="New Password"
-                  value={modalValue}
-                  onChangeText={setModalValue}
-                  secureTextEntry={secure}
-                />
-                <TouchableOpacity onPress={() => setSecure(!secure)} style={styles.eyeButton}>
-                  <Ionicons name={secure ? "eye-off-outline" : "eye-outline"} size={22} color="#666" />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TextInput
-                style={styles.modalInput}
-                placeholder={modalType === "email" ? "Email" : "Contact Number"}
-                value={modalValue}
-                onChangeText={setModalValue}
-                keyboardType={modalType === "email" ? "email-address" : "phone-pad"}
-                autoCapitalize="none"
-              />
-            )}
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowModal(false)}
+        >
+          <TouchableOpacity 
+            activeOpacity={1}
+            style={styles.modalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Edit {modalType === "name" ? "Name" : modalType === "email" ? "Email" : "Contact Number"}
+              </Text>
+              <TouchableOpacity 
                 onPress={() => setShowModal(false)}
+                style={styles.closeButton}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton]}
-                onPress={handleModalSave}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={styles.saveButtonText}>Save</Text>
-                )}
+                <Ionicons name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+
+            <View style={styles.modalBody}>
+              {modalType === "name" ? (
+                <>
+                  {/* First Name Input */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>First Name</Text>
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="Enter first name"
+                      value={modalValue}
+                      onChangeText={setModalValue}
+                    />
+                  </View>
+
+                  {/* Last Name Input */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Last Name</Text>
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="Enter last name"
+                      value={modalValue2}
+                      onChangeText={setModalValue2}
+                    />
+                  </View>
+                </>
+              ) : modalType === "email" ? (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Email Address</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Enter email address"
+                    value={modalValue}
+                    onChangeText={setModalValue}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+              ) : (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Phone Number</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Enter phone number"
+                    value={modalValue}
+                    onChangeText={setModalValue}
+                    keyboardType="phone-pad"
+                  />
+                </View>
+              )}
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.saveButton]}
+                  onPress={handleModalSave}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Save</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
@@ -411,59 +472,75 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#65676b",
   },
-  // Modal styles
+  // Modal styles - Bottom sheet style
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+    justifyContent: "flex-end",
   },
   modalContent: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 20,
-    width: "100%",
-    maxWidth: 400,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "80%",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "700",
     color: "#000",
-    marginBottom: 16,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
   },
   modalInput: {
     backgroundColor: "#f0f2f5",
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 10,
     fontSize: 15,
     color: "#000",
-    marginBottom: 12,
-  },
-  passwordContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f0f2f5",
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  passwordInput: {
-    flex: 1,
-    marginBottom: 0,
-  },
-  eyeButton: {
-    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "transparent",
   },
   modalButtons: {
     flexDirection: "row",
-    gap: 10,
+    gap: 12,
     marginTop: 8,
   },
   modalButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 10,
     alignItems: "center",
   },
   cancelButton: {
@@ -472,7 +549,7 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: "#000",
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   saveButton: {
     backgroundColor: "#b63c3e",
@@ -480,6 +557,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });

@@ -4,7 +4,7 @@ import Checkbox from "expo-checkbox";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, loginRequest } from '../config/api'; // ← Import loginRequest
 
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -28,34 +28,19 @@ const LoginScreen: React.FC = () => {
 
   const handleLogin = async () => {
     try {
-      console.log("Logging in with:", { email, password });
-      console.log("API URL:", API_ENDPOINTS.LOGIN);
-
-      const res = await fetch(API_ENDPOINTS.LOGIN, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      console.log("Response status:", res.status);
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        Alert.alert("Login failed", data.message || "Invalid credentials");
-        return;
-      }
+      // ✅ USE THE NEW loginRequest FUNCTION
+      const data = await loginRequest(email, password);
 
       await AsyncStorage.setItem("token", data.token);
-      console.log("Login successful, token saved");
-      console.log("Token saved:", data.token);
+      console.log("✅ Login successful, token saved");
+      
       navigation.reset({
         index: 0,
         routes: [{ name: "HomeScreen" as never }],
       });
-    } catch (error) {
-      console.error("Login error:", error);
-      Alert.alert("Error", "Something went wrong, try again.");
+    } catch (error: any) {
+      console.error("❌ Login error:", error);
+      Alert.alert("Login failed", error.message || "Invalid password or email! Try again.");
     }
   };
 
@@ -76,7 +61,6 @@ const LoginScreen: React.FC = () => {
     }
 
     try {
-      // Combine barangay and municipality for farm_location
       const farmLocation = accountType === "farmer" 
         ? (barangay.trim() ? `${barangay}, ${municipality}` : municipality)
         : null;
@@ -91,34 +75,47 @@ const LoginScreen: React.FC = () => {
         farm_location: farmLocation,
       };
 
-      console.log("Sending registration request:");
-      console.log("API URL:", API_ENDPOINTS.REGISTER);
+      console.log("📤 Sending registration request:");
       console.log("Request body:", requestBody);
 
+      // ✅ ADD NGROK HEADER TO REGISTRATION TOO
       const res = await fetch(API_ENDPOINTS.REGISTER, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true" // ← ADD THIS
+        },
         body: JSON.stringify(requestBody),
       });
 
-      console.log("Response status:", res.status);
+      console.log("📥 Response status:", res.status);
       
-      const data = await res.json();
-      console.log("Response data:", data);
+      const text = await res.text();
+      console.log("📄 Raw response:", text.substring(0, 200));
+      
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error("❌ Server returned HTML instead of JSON:", text);
+        Alert.alert("Error", "Server error. Please check if the backend is running.");
+        return;
+      }
 
       if (!res.ok) {
         Alert.alert("Registration failed", data.message || JSON.stringify(data));
         return;
       }
 
-      console.log("Registration successful!");
+      console.log("✅ Registration successful!");
       Alert.alert("Success", "Account created. Please login.");
       setActiveTab("login");
-    } catch (error) {
-      console.error("Register error:", error);
-      Alert.alert("Error", "Something went wrong, try again.");
+    } catch (error: any) {
+      console.error("❌ Register error:", error);
+      Alert.alert("Error", error.message || "Something went wrong, try again.");
     }
   };
+
 
   return (
     <KeyboardAvoidingView 
@@ -216,11 +213,11 @@ const LoginScreen: React.FC = () => {
                   />
                   <Text style={styles.checkboxLabel}>Remember Me</Text>
                 </View>
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   onPress={() => navigation.navigate("ForgotPassScreen" as never)}
                 >
                   <Text style={styles.link}>Forgot password?</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
             </>
           )}

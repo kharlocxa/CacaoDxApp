@@ -207,28 +207,6 @@ const AccountSecurityScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Password Strength Indicator */}
-            {newPassword.length > 0 && (
-              <View style={styles.strengthContainer}>
-                <View style={styles.strengthBar}>
-                  <View
-                    style={[
-                      styles.strengthFill,
-                      {
-                        width: passwordStrength.width,
-                        backgroundColor: passwordStrength.color,
-                      } as any,
-                    ]}
-                  />
-                </View>
-                <Text
-                  style={[styles.strengthText, { color: passwordStrength.color }]}
-                >
-                  {passwordStrength.strength}
-                </Text>
-              </View>
-            )}
-
             {/* Confirm Password */}
             <Text style={styles.label}>Confirm New Password</Text>
             <View style={styles.passwordContainer}>
@@ -251,6 +229,28 @@ const AccountSecurityScreen: React.FC = () => {
                 />
               </TouchableOpacity>
             </View>
+
+            {/* Password Strength Indicator */}
+            {newPassword.length > 0 && (
+              <View style={styles.strengthContainer}>
+                <View style={styles.strengthBar}>
+                  <View
+                    style={[
+                      styles.strengthFill,
+                      {
+                        width: passwordStrength.width,
+                        backgroundColor: passwordStrength.color,
+                      } as any,
+                    ]}
+                  />
+                </View>
+                <Text
+                  style={[styles.strengthText, { color: passwordStrength.color }]}
+                >
+                  {passwordStrength.strength}
+                </Text>
+              </View>
+            )}
 
             {/* Password Requirements */}
             <View style={styles.requirements}>

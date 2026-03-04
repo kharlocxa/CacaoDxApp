@@ -38,6 +38,14 @@ const DiagnosisResult: React.FC = () => {
   const navigation = useNavigation();
   const params = route.params as RouteParams;
 
+  // ✅ Safely parse confidence — handles undefined, string, or number coming from history or scan
+  const confidenceValue = (() => {
+    const raw = params.confidence;
+    if (raw === undefined || raw === null) return 0;
+    const parsed = typeof raw === 'string' ? parseFloat(raw) : raw;
+    return isNaN(parsed) ? 0 : parsed;
+  })();
+
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 80) return "#4CAF50";
     if (confidence >= 60) return "#FF9800";
@@ -124,19 +132,21 @@ const DiagnosisResult: React.FC = () => {
                 style={[
                   styles.confidenceFill, 
                   { 
-                    width: `${params.confidence}%`,
-                    backgroundColor: getConfidenceColor(params.confidence)
+                    // ✅ Use safe confidenceValue, clamp between 0-100
+                    width: `${Math.min(Math.max(confidenceValue, 0), 100)}%`,
+                    backgroundColor: getConfidenceColor(confidenceValue)
                   }
                 ]} 
               />
             </View>
+            {/* ✅ Use safe confidenceValue instead of params.confidence.toFixed() */}
             <Text 
               style={[
                 styles.confidenceText,
-                { color: getConfidenceColor(params.confidence) }
+                { color: getConfidenceColor(confidenceValue) }
               ]}
             >
-              {params.confidence.toFixed(1)}%
+              {confidenceValue.toFixed(1)}%
             </Text>
           </View>
         </View>

@@ -38,10 +38,8 @@ const PestDetails: React.FC = () => {
 
   const fetchPestDetails = async () => {
     try {
-      // Get authentication headers
       const headers = await getAuthHeaders();
       
-      // Use the correct endpoint with ID
       const response = await fetch(`${API_ENDPOINTS.PEST_DETAIL}/${pestId}`, {
         method: 'GET',
         headers: headers,
@@ -60,8 +58,6 @@ const PestDetails: React.FC = () => {
         
         if (response.status === 401) {
           setError("Authentication failed. Please log in again.");
-          // Optionally navigate to login
-          // navigation.navigate("Login" as never);
         }
       }
     } catch (error) {
@@ -160,7 +156,7 @@ const PestDetails: React.FC = () => {
             <Text style={styles.sectionTitle}>Description</Text>
           </View>
           <Text style={styles.contentText}>
-            {pest.description.replace(/\n/g, ' ').trim()}
+            {pest.description.replace(/\r\n/g, ' ').replace(/\n/g, ' ').trim()}
           </Text>
         </View>
 
@@ -172,7 +168,7 @@ const PestDetails: React.FC = () => {
           </View>
           <View style={styles.damageCard}>
             <Text style={styles.damageText}>
-              {pest.damage.replace(/\n/g, ' ').trim()}
+              {pest.damage.replace(/\r\n/g, ' ').replace(/\n/g, ' ').trim()}
             </Text>
           </View>
         </View>
@@ -185,15 +181,6 @@ const PestDetails: React.FC = () => {
             agricultural expert or refer to the diagnosis section.
           </Text>
         </View>
-
-        {/* Action Button */}
-        {/* <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigation.navigate("CameraScreen" as never)}
-        >
-          <Ionicons name="camera" size={20} color="#fff" />
-          <Text style={styles.actionButtonText}>Scan for Diagnosis</Text>
-        </TouchableOpacity> */}
       </ScrollView>
     </View>
   );
@@ -264,13 +251,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-  flexGrow: 1,
+    flexGrow: 1,
   },
   imageContainer: {
     backgroundColor: "#fff",
     padding: 16,
     alignItems: "center",
-    width: '100%',  // Add this
+    width: '100%',
   },
   pestImage: {
     width: "100%",
@@ -278,12 +265,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   section: {
-  backgroundColor: "#fff",
-  marginTop: 12,
-  paddingLeft: 16,
-  paddingRight: 16,
-  paddingTop: 16,
-  paddingBottom: 16,
+    backgroundColor: "#fff",
+    marginTop: 12,
+    paddingLeft: 16,
+    paddingRight: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
   nameHeader: {
     flexDirection: "row",
@@ -342,7 +329,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#333",
     lineHeight: 22,
-    textAlign: 'auto',  // Try 'auto' instead of 'justify'
+    textAlign: 'justify',
   },
   damageCard: {
     backgroundColor: "#FFF5F5",
@@ -350,14 +337,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderLeftWidth: 4,
     borderLeftColor: "#FF6B6B",
-    alignSelf: 'stretch',  // Add this
   },
   damageText: {
     fontSize: 15,
     color: "#d32f2f",
-    lineHeight: 20,
+    lineHeight: 22,
     fontWeight: "500",
-    textAlign: 'auto',  // Try 'auto' instead of 'justify'  
+    textAlign: 'justify',
   },
   infoBox: {
     flexDirection: "row",
@@ -365,6 +351,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff3cd",
     marginHorizontal: 16,
     marginTop: 12,
+    marginBottom: 20,
     padding: 16,
     borderRadius: 12,
   },
@@ -374,21 +361,6 @@ const styles = StyleSheet.create({
     color: "#856404",
     lineHeight: 20,
     marginLeft: 12,
-  },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#b63c3e",
-    marginHorizontal: 16,
-    marginVertical: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
-  },
-  actionButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 10,
+    textAlign: 'justify',
   },
 });
